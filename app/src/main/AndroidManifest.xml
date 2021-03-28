@@ -14,7 +14,7 @@
         android:theme="@style/Theme.Mangaloidclient">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".screens.main.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.Mangaloidclient.NoActionBar">
@@ -26,7 +26,7 @@
         </activity>
 
         <activity
-            android:name=".screens.ReaderActivity"
+            android:name=".screens.reader.ReaderActivity"
             android:launchMode="singleTask" />
 
     </application>

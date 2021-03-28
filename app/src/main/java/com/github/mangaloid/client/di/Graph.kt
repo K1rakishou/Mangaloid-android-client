@@ -1,6 +1,7 @@
-package com.github.mangaloid.client
+package com.github.mangaloid.client.di
 
 import android.content.Context
+import com.github.mangaloid.client.model.repository.MangaRepository
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import java.io.File

@@ -1,4 +1,4 @@
-package com.github.mangaloid.client.screens
+package com.github.mangaloid.client.screens.reader
 
 import android.content.Context
 import android.content.Intent
@@ -24,7 +24,7 @@ class ReaderActivity : ComponentActivity() {
 
     val mangaId = MangaId.fromRawValueOrNull(intent.getIntExtra(MANGA_ID_KEY, -1))
     if (mangaId == null) {
-      Logger.e(TAG, "onCreate() Bad ${MANGA_ID_KEY} parameter")
+      Logger.e(TAG, "onCreate() Bad $MANGA_ID_KEY parameter")
       finish()
       return
     }

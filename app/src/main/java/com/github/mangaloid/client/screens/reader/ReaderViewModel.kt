@@ -1,7 +1,9 @@
-package com.github.mangaloid.client
+package com.github.mangaloid.client.screens.reader
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.mangaloid.client.di.Graph
+import com.github.mangaloid.client.model.repository.MangaRepository
 import com.github.mangaloid.client.model.Manga
 import com.github.mangaloid.client.model.MangaId
 import kotlinx.coroutines.flow.MutableStateFlow

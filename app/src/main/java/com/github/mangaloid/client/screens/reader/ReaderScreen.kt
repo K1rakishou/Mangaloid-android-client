@@ -1,4 +1,4 @@
-package com.github.mangaloid.client.screens
+package com.github.mangaloid.client.screens.reader
 
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -16,7 +16,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.mangaloid.client.ReaderViewModel
 import com.github.mangaloid.client.model.MangaChapter
 import com.github.mangaloid.client.model.MangaId
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf

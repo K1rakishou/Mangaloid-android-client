@@ -1,4 +1,4 @@
-package com.github.mangaloid.client
+package com.github.mangaloid.client.model.repository
 
 import androidx.annotation.GuardedBy
 import com.github.mangaloid.client.model.Manga

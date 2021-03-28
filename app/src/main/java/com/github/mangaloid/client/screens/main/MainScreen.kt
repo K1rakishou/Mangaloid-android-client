@@ -1,9 +1,5 @@
-package com.github.mangaloid.client
+package com.github.mangaloid.client.screens.main
 
-import android.content.Intent
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -18,25 +14,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.github.mangaloid.client.model.MangaId
-import com.github.mangaloid.client.screens.ReaderActivity
-import com.github.mangaloid.client.ui.theme.MangaloidclientTheme
-
-
-class MainActivity : ComponentActivity() {
-
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-
-    setContent {
-      MangaloidclientTheme {
-        MainActivityContent(MangaId(0))
-      }
-    }
-  }
-}
+import com.github.mangaloid.client.screens.reader.ReaderActivity
 
 @Composable
-private fun MainActivityContent(mangaId: MangaId) {
+fun MainScreen(mangaId: MangaId) {
   val background = remember { Color.Black }
 
   Surface(color = background) {
