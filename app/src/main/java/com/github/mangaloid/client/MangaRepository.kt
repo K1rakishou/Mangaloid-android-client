@@ -20,6 +20,7 @@ class MangaRepository {
       description = "Boku no Kokoro no Yabai Yatsu",
       chapters = listOf(
         MangaChapter(
+          mangaIpfsId = MangaIpfsId("bafybeihnoou2av5w2bzmwkl6hi25scyzz6sjwdfqp4cwq2ikf6dfmev3ta"),
           chapterTitle = "Chapter 1",
           pages = 18,
         )
@@ -32,18 +33,20 @@ class MangaRepository {
       description = "Otoyomegatari",
       chapters = listOf(
         MangaChapter(
+          mangaIpfsId = MangaIpfsId("bafybeigfivshobq4h5x5qwmttgqimaufmcjl6hpjcrsedj7wxxduphp7g4"),
           chapterTitle = "Chapter 1",
           pages = 39,
         )
       )
     ),
     MangaId(2) to Manga(
-      mangaId = MangaId(1),
+      mangaId = MangaId(2),
       mangaIpfsId = MangaIpfsId("bafybeibgnpbredeofwp364qomqpth55a6ui3oiy2ucm35fo3eimquoeob4"),
       titles = listOf("Spy X Family"),
       description = "Spy X Family",
       chapters = listOf(
         MangaChapter(
+          mangaIpfsId = MangaIpfsId("bafybeibgnpbredeofwp364qomqpth55a6ui3oiy2ucm35fo3eimquoeob4"),
           chapterTitle = "Chapter 1",
           pages = 71,
         )
