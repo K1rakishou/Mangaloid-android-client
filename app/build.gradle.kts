@@ -1,6 +1,7 @@
 plugins {
   id("com.android.application")
   id("kotlin-android")
+  id("kotlin-kapt")
 }
 
 android {
@@ -53,10 +54,13 @@ dependencies {
   implementation("androidx.compose.ui:ui-tooling:${rootProject.extra["compose_version"]}")
   implementation("androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha03")
   implementation("androidx.activity:activity-compose:1.3.0-alpha05")
+  implementation("androidx.navigation:navigation-compose:1.0.0-alpha09")
 
   implementation("com.google.accompanist:accompanist-pager:0.7.0")
   implementation("com.google.accompanist:accompanist-coil:0.7.0")
   implementation("com.squareup.okhttp3:okhttp:4.9.0")
+  implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
+  implementation("com.google.code.findbugs:jsr305:3.0.2")
 
   testImplementation("junit:junit:4.+")
   androidTestImplementation("androidx.test.ext:junit:1.1.2")

@@ -5,9 +5,8 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import com.github.mangaloid.client.model.MangaId
+import com.github.mangaloid.client.model.data.local.MangaChapterId
+import com.github.mangaloid.client.model.data.local.MangaId
 import com.github.mangaloid.client.ui.theme.MangaloidclientTheme
 import com.github.mangaloid.client.util.FullScreenUtils.hideSystemUI
 import com.github.mangaloid.client.util.FullScreenUtils.setupFullscreen
@@ -19,25 +18,30 @@ class ReaderActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    window.setupFullscreen()
-    window.hideSystemUI(lightStatusBar = true, lightNavBar = true)
-
-    val mangaId = MangaId.fromRawValueOrNull(intent.getIntExtra(MANGA_ID_KEY, -1))
+    val mangaId = MangaId.fromRawValueOrNull(intent.getIntExtra(MangaId.MANGA_ID_KEY, -1))
     if (mangaId == null) {
-      Logger.e(TAG, "onCreate() Bad $MANGA_ID_KEY parameter")
+      Logger.e(TAG, "onCreate() Bad ${MangaId.MANGA_ID_KEY} parameter")
       finish()
       return
     }
 
+    val mangaChapterId = MangaChapterId.fromRawValueOrNull(intent.getIntExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, -1))
+    if (mangaChapterId == null) {
+      Logger.e(TAG, "onCreate() Bad ${MangaChapterId.MANGA_CHAPTER_ID_KEY} parameter")
+      finish()
+      return
+    }
+
+    window.setupFullscreen()
+    window.hideSystemUI(lightStatusBar = true, lightNavBar = true)
+
     setContent {
       MangaloidclientTheme {
-        // A surface container using the 'background' color from the theme
-        Surface(color = MaterialTheme.colors.background) {
-          ReaderScreen(
-            mangaId = mangaId,
-            toggleFullScreenModeFunc = { window.toggleSystemUI(lightStatusBar = true, lightNavBar = true) }
-          )
-        }
+        ReaderScreen(
+          mangaId = mangaId,
+          mangaChapterId = mangaChapterId,
+          toggleFullScreenModeFunc = { window.toggleSystemUI(lightStatusBar = true, lightNavBar = true) }
+        )
       }
     }
   }
@@ -45,11 +49,10 @@ class ReaderActivity : ComponentActivity() {
   companion object {
     private const val TAG = "ReaderActivity"
 
-    const val MANGA_ID_KEY = "manga_id"
-
-    fun launch(context: Context, mangaId: MangaId) {
+    fun launch(context: Context, mangaId: MangaId, mangaChapterId: MangaChapterId) {
       val intent = Intent(context, ReaderActivity::class.java)
-      intent.putExtra(MANGA_ID_KEY, mangaId.id)
+      intent.putExtra(MangaId.MANGA_ID_KEY, mangaId.id)
+      intent.putExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, mangaChapterId.id)
 
       context.startActivity(intent)
     }

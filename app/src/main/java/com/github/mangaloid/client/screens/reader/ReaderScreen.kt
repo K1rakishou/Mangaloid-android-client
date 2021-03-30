@@ -16,28 +16,30 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.mangaloid.client.model.MangaChapter
-import com.github.mangaloid.client.model.MangaId
+import com.github.mangaloid.client.core.AppConstants
+import com.github.mangaloid.client.model.data.local.MangaChapter
+import com.github.mangaloid.client.model.data.local.MangaChapterId
+import com.github.mangaloid.client.model.data.local.MangaId
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
 import com.google.accompanist.imageloading.ImageLoadState
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
-import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
 @Composable
 fun ReaderScreen(
   mangaId: MangaId,
+  mangaChapterId: MangaChapterId,
   toggleFullScreenModeFunc: () -> Unit = { }
 ) {
-  val viewModel = viewModel<ReaderViewModel>(
-    key = "reader_screen_${mangaId.id}",
-    factory = viewModelProviderFactoryOf { ReaderViewModel(mangaId = mangaId) }
+  val viewModel = viewModel<ReaderScreenViewModel>(
+    key = "reader_screen_${mangaChapterId.id}",
+    factory = viewModelProviderFactoryOf { ReaderScreenViewModel(mangaId = mangaId, mangaChapterId = mangaChapterId) }
   )
-  val viewState by viewModel.state.collectAsState()
-  val currentManga = viewState.currentManga
+  val viewState by viewModel.stateViewable.collectAsState()
+  val currentMangaChapter = viewState.currentMangaChapter
   val color = remember { Color.Black }
 
   val gestureDetector = Modifier.pointerInput(Unit) {
@@ -45,10 +47,10 @@ fun ReaderScreen(
   }
 
   Surface(modifier = Modifier.fillMaxSize().then(gestureDetector), color = color) {
-    if (currentManga == null) {
+    if (currentMangaChapter == null) {
       ReaderScreenEmptyContent(mangaId)
     } else {
-      ReaderScreenContent(currentManga.chapters.first())
+      ReaderScreenContent(currentMangaChapter)
     }
   }
 
@@ -75,7 +77,7 @@ private fun ReaderScreenContent(
 
   HorizontalPager(
     state = pagerState,
-    offscreenLimit = 3,
+    offscreenLimit = AppConstants.pagesToPreload,
     modifier = Modifier.fillMaxSize()
   ) { mangaPage ->
     val currentMangaPage = mangaPage + 1
@@ -83,30 +85,15 @@ private fun ReaderScreenContent(
       "https://ipfs.io/ipfs/${mangaChapter.mangaIpfsId.id}/${currentMangaPage}.jpg".toHttpUrl()
     }
 
-    MangaPageContent(
-      imageUrl = imageUrl,
-      chapterTitle = mangaChapter.chapterTitle,
-      currentPage = currentMangaPage,
-      pages = mangaChapter.pages
+    CoilImage(
+      data = imageUrl,
+      contentDescription = null,
+      loading = { MangePageLoadingContent() },
+      error = { error -> MangaPageLoadingErrorContent(error) },
+      contentScale = ContentScale.Inside,
+      modifier = Modifier.fillMaxSize()
     )
   }
-}
-
-@Composable
-private fun MangaPageContent(
-  imageUrl: HttpUrl,
-  chapterTitle: String,
-  currentPage: Int,
-  pages: Int
-) {
-  CoilImage(
-    data = imageUrl,
-    contentDescription = null,
-    loading = { MangePageLoadingContent() },
-    error = { error -> MangaPageLoadingErrorContent(error) },
-    contentScale = ContentScale.FillWidth,
-    modifier = Modifier.fillMaxSize()
-  )
 }
 
 @Composable

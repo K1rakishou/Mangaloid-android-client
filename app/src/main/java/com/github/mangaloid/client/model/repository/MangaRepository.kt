@@ -1,61 +1,57 @@
 package com.github.mangaloid.client.model.repository
 
 import androidx.annotation.GuardedBy
-import com.github.mangaloid.client.model.Manga
-import com.github.mangaloid.client.model.MangaChapter
-import com.github.mangaloid.client.model.MangaId
-import com.github.mangaloid.client.model.MangaIpfsId
+import com.github.mangaloid.client.core.ModularResult
+import com.github.mangaloid.client.di.DependenciesGraph
+import com.github.mangaloid.client.model.data.local.Manga
+import com.github.mangaloid.client.model.data.local.MangaChapter
+import com.github.mangaloid.client.model.data.local.MangaChapterId
+import com.github.mangaloid.client.model.data.local.MangaId
+import com.github.mangaloid.client.model.source.MangaRemoteSource
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class MangaRepository {
+class MangaRepository(
+  private val mangaRemoteSource: MangaRemoteSource
+) : BaseRepository() {
   private val mutex = Mutex()
 
   @GuardedBy("mutex")
-  private val mangas = mapOf<MangaId, Manga>(
-    MangaId(0) to Manga(
-      mangaId = MangaId(0),
-      mangaIpfsId = MangaIpfsId("bafybeihnoou2av5w2bzmwkl6hi25scyzz6sjwdfqp4cwq2ikf6dfmev3ta"),
-      titles = listOf("Boku no Kokoro no Yabai Yatsu"),
-      description = "Boku no Kokoro no Yabai Yatsu",
-      chapters = listOf(
-        MangaChapter(
-          mangaIpfsId = MangaIpfsId("bafybeihnoou2av5w2bzmwkl6hi25scyzz6sjwdfqp4cwq2ikf6dfmev3ta"),
-          chapterTitle = "Chapter 1",
-          pages = 18,
-        )
-      )
-    ),
-    MangaId(1) to Manga(
-      mangaId = MangaId(1),
-      mangaIpfsId = MangaIpfsId("bafybeigfivshobq4h5x5qwmttgqimaufmcjl6hpjcrsedj7wxxduphp7g4"),
-      titles = listOf("Otoyomegatari"),
-      description = "Otoyomegatari",
-      chapters = listOf(
-        MangaChapter(
-          mangaIpfsId = MangaIpfsId("bafybeigfivshobq4h5x5qwmttgqimaufmcjl6hpjcrsedj7wxxduphp7g4"),
-          chapterTitle = "Chapter 1",
-          pages = 39,
-        )
-      )
-    ),
-    MangaId(2) to Manga(
-      mangaId = MangaId(2),
-      mangaIpfsId = MangaIpfsId("bafybeibgnpbredeofwp364qomqpth55a6ui3oiy2ucm35fo3eimquoeob4"),
-      titles = listOf("Spy X Family"),
-      description = "Spy X Family",
-      chapters = listOf(
-        MangaChapter(
-          mangaIpfsId = MangaIpfsId("bafybeibgnpbredeofwp364qomqpth55a6ui3oiy2ucm35fo3eimquoeob4"),
-          chapterTitle = "Chapter 1",
-          pages = 71,
-        )
-      )
-    )
-  )
+  private val mangaCache = mutableMapOf<MangaId, Manga>()
 
-  suspend fun getMangaById(mangaId: MangaId): Manga? {
-    return mutex.withLock { mangas[mangaId] }
+  suspend fun loadMangaFromServer(): ModularResult<List<Manga>> {
+    return repoAsync {
+      val mangaLoadedFromServerResult = mangaRemoteSource.loadManga()
+      if (mangaLoadedFromServerResult is ModularResult.Error) {
+        return@repoAsync ModularResult.error(mangaLoadedFromServerResult.error)
+      }
+
+      val mangaList = (mangaLoadedFromServerResult as ModularResult.Value).value
+      if (mangaList.isEmpty()) {
+        return@repoAsync ModularResult.value(emptyList())
+      }
+
+      mangaList.forEach { manga ->
+        mutex.withLock {
+          mangaCache.put(manga.mangaId, manga)
+        }
+      }
+
+      return@repoAsync ModularResult.value(mangaList)
+    }
+  }
+
+  suspend fun getMangaChapterByIdFromCache(mangaId: MangaId, mangaChapterId: MangaChapterId): MangaChapter? {
+    return mutex.withLock {
+      mangaCache[mangaId]
+        ?.chapters
+        ?.firstOrNull { mangaChapter -> mangaChapter.chapterId == mangaChapterId }
+    }
+  }
+
+  suspend fun getMangaByIdFromCache(mangaId: MangaId): Manga? {
+    return mutex.withLock { mangaCache[mangaId] }
   }
 
 }

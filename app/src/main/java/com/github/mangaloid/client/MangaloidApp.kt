@@ -1,10 +1,10 @@
 package com.github.mangaloid.client
 
 import android.app.Application
-import com.github.mangaloid.client.di.Graph
+import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.util.Logger
 
-class Mangaloid : Application() {
+class MangaloidApp : Application() {
 
   override fun onCreate() {
     super.onCreate()
@@ -14,6 +14,6 @@ class Mangaloid : Application() {
       System.exit(-1)
     }
 
-    Graph.init(this)
+    DependenciesGraph.init(this)
   }
 }
