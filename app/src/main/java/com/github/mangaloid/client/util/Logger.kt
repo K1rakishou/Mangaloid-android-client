@@ -3,7 +3,7 @@ package com.github.mangaloid.client.util
 import android.util.Log
 
 object Logger {
-  private const val APP_TAG = "Mangaloid"
+  const val APP_TAG = "Mangaloid"
 
   fun d(tag: String, message: String) {
     Log.d("${APP_TAG} | $tag", message)

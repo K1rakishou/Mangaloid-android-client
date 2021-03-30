@@ -10,7 +10,7 @@ class MangaloidApp : Application() {
     super.onCreate()
 
     Thread.currentThread().setUncaughtExceptionHandler { t, e ->
-      Logger.e("APP", "Unhandled exception in thread ${t.name}", e)
+      Logger.e(Logger.APP_TAG, "Unhandled exception in thread ${t.name}", e)
       System.exit(-1)
     }
 
