@@ -19,6 +19,12 @@ android {
   }
 
   buildTypes {
+    applicationVariants.all {
+      outputs.all {
+        (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = "Mangaloid.apk"
+      }
+    }
+
     release {
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -61,6 +67,8 @@ dependencies {
   implementation("com.squareup.okhttp3:okhttp:4.9.0")
   implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
   implementation("com.google.code.findbugs:jsr305:3.0.2")
+  implementation("com.davemorrissey.labs:subsampling-scale-image-view:3.10.0")
+  implementation("joda-time:joda-time:2.10.10")
 
   testImplementation("junit:junit:4.+")
   androidTestImplementation("androidx.test.ext:junit:1.1.2")

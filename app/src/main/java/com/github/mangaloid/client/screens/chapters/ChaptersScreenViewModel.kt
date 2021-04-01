@@ -3,8 +3,8 @@ package com.github.mangaloid.client.screens.chapters
 import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.ViewModelWithState
 import com.github.mangaloid.client.di.DependenciesGraph
-import com.github.mangaloid.client.model.data.local.Manga
-import com.github.mangaloid.client.model.data.local.MangaId
+import com.github.mangaloid.client.model.data.Manga
+import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.model.repository.MangaRepository
 import kotlinx.coroutines.launch
 

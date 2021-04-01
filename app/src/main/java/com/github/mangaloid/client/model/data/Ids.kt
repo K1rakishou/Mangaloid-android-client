@@ -1,4 +1,6 @@
-package com.github.mangaloid.client.model.data.local
+package com.github.mangaloid.client.model.data
+
+import okhttp3.HttpUrl
 
 inline class MangaId(val id: Int) {
 
@@ -29,4 +31,6 @@ inline class MangaChapterId(val id: Int) {
   }
 }
 
-inline class MangaIpfsId(val id: String)
+inline class MangaChapterIpfsId(val cid: String)
+
+inline class MangaPageUrl(val url: HttpUrl)

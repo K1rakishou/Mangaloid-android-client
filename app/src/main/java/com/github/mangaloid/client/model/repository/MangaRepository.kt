@@ -2,13 +2,11 @@ package com.github.mangaloid.client.model.repository
 
 import androidx.annotation.GuardedBy
 import com.github.mangaloid.client.core.ModularResult
-import com.github.mangaloid.client.di.DependenciesGraph
-import com.github.mangaloid.client.model.data.local.Manga
-import com.github.mangaloid.client.model.data.local.MangaChapter
-import com.github.mangaloid.client.model.data.local.MangaChapterId
-import com.github.mangaloid.client.model.data.local.MangaId
+import com.github.mangaloid.client.model.data.Manga
+import com.github.mangaloid.client.model.data.MangaChapter
+import com.github.mangaloid.client.model.data.MangaChapterId
+import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.model.source.MangaRemoteSource
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 

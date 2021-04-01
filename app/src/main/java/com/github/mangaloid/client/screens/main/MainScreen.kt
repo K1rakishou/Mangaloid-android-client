@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.core.AsyncData
-import com.github.mangaloid.client.model.data.local.Manga
+import com.github.mangaloid.client.model.data.Manga
 import com.google.accompanist.coil.CoilImage
 
 @Composable

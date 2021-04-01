@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.*
-import com.github.mangaloid.client.model.data.local.MangaId
+import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.screens.chapters.ChaptersScreen
 import com.github.mangaloid.client.screens.reader.ReaderActivity
 

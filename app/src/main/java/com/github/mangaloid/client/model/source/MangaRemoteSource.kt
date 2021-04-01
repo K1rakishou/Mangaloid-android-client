@@ -1,14 +1,14 @@
 package com.github.mangaloid.client.model.source
 
 import com.github.mangaloid.client.core.ModularResult
-import com.github.mangaloid.client.model.data.local.*
-import com.github.mangaloid.client.model.data.remote.MangaRemote
+import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.util.suspendConvertIntoJsonObject
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.joda.time.format.DateTimeFormat
 
 
 class MangaRemoteSource(
@@ -39,28 +39,36 @@ class MangaRemoteSource(
         val mangaId = MangaId.fromRawValueOrNull(mangaRemote.id)
           ?: return@mapNotNull null
 
-        val mangaIpfsId = MangaIpfsId(mangaRemote.cid)
+        val chapters = mangaRemote.chapters.mapNotNull { mangaChapterRemote ->
+          // TODO: 4/1/2021 some chapters have no cid
+          val cid = mangaChapterRemote.cid
+            ?: return@mapNotNull null
 
-        val chapters = mangaRemote.chapters.mapIndexed { index, mangaChapterRemote ->
-          return@mapIndexed MangaChapter(
-            chapterId = MangaChapterId(index),
-            mangaIpfsId = mangaIpfsId,
-            // TODO(hardcoded): 3/29/2021: there is no chapters in the API for now
-            chapterTitle = "Chapter ${index + 1}",
+          // TODO: 4/1/2021 some chapters have no date
+          val date = mangaChapterRemote.date
+            ?: return@mapNotNull null
+
+          return@mapNotNull MangaChapter(
+            chapterId = MangaChapterId(mangaChapterRemote.no),
+            mangaChapterIpfsId =  MangaChapterIpfsId(cid),
+            title = mangaChapterRemote.title,
+            group = mangaChapterRemote.group,
+            date = MANGA_CHAPTER_DATE_PARSER.parseDateTime(date),
             pages = mangaChapterRemote.pages
           )
         }
 
         return@mapNotNull Manga(
           mangaId = mangaId,
-          mangaIpfsId = mangaIpfsId,
           title = mangaRemote.title,
-          // TODO(hardcoded): 3/29/2021 there is no manga description in the API for now
-          description = "Default description for manga ${mangaId.id}",
           chapters = chapters
         )
       }
     }
+  }
+
+  companion object {
+    private val MANGA_CHAPTER_DATE_PARSER = DateTimeFormat.forPattern("MM-dd-yyyy")
   }
 
 }

@@ -4,16 +4,20 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import com.github.mangaloid.client.model.data.local.MangaChapterId
-import com.github.mangaloid.client.model.data.local.MangaId
-import com.github.mangaloid.client.ui.theme.MangaloidclientTheme
+import androidx.activity.viewModels
+import com.github.mangaloid.client.R
+import com.github.mangaloid.client.core.MangaloidCoroutineScope
+import com.github.mangaloid.client.model.data.MangaChapterId
+import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.util.FullScreenUtils.hideSystemUI
 import com.github.mangaloid.client.util.FullScreenUtils.setupFullscreen
-import com.github.mangaloid.client.util.FullScreenUtils.toggleSystemUI
 import com.github.mangaloid.client.util.Logger
+import com.github.mangaloid.client.util.viewModelProviderFactoryOf
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 class ReaderActivity : ComponentActivity() {
+  private val coroutineScope = MangaloidCoroutineScope()
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -34,14 +38,19 @@ class ReaderActivity : ComponentActivity() {
 
     window.setupFullscreen()
     window.hideSystemUI(lightStatusBar = true, lightNavBar = true)
+    setContentView(R.layout.reader_activity_layout)
 
-    setContent {
-      MangaloidclientTheme {
-        ReaderScreen(
-          mangaId = mangaId,
-          mangaChapterId = mangaChapterId,
-          toggleFullScreenModeFunc = { window.toggleSystemUI(lightStatusBar = true, lightNavBar = true) }
-        )
+    val readerViewPager = findViewById<ReaderScreenPagerWithImages>(R.id.reader_view_pager)
+    val readScreenViewModel by viewModels<ReaderScreenViewModel>(
+      factoryProducer = { viewModelProviderFactoryOf { ReaderScreenViewModel(mangaId, mangaChapterId) } }
+    )
+
+    coroutineScope.launch {
+      readScreenViewModel.stateViewable.collect { state ->
+        val currentMangaChapter = state.currentMangaChapter
+          ?: return@collect
+
+        readerViewPager.onMangaLoaded(currentMangaChapter, readScreenViewModel)
       }
     }
   }
