@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
+import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.model.data.MangaChapter
 
 class ReaderScreenPagerWithImages @JvmOverloads constructor(
@@ -29,7 +30,9 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
       ViewGroup.LayoutParams.MATCH_PARENT
     ))
 
-    viewPager.offscreenPageLimit = 1
+    // TODO: 4/1/2021: This is probably not the best idea but for now it should be enough. In the
+    //  future MangaPageLoader should do the page preloading.
+    viewPager.offscreenPageLimit = AppConstants.preloadImagesCount
   }
 
   fun onMangaLoaded(mangaChapter: MangaChapter, readerScreenViewModel: ReaderScreenViewModel) {
