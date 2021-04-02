@@ -53,8 +53,8 @@ class CacheHandler(
   private val trimChunksRunning = AtomicBoolean(false)
   private val directoriesChecked = AtomicBoolean(false)
 
-  // 256MB
-  private val fileCacheDiskSizeBytes: Long = 256L * (1024L * 1024L)
+  // 128MB
+  private val fileCacheDiskSizeBytes: Long = 128L * (1024L * 1024L)
 
   @GuardedBy("itself")
   private val filesOnDiskCache = mutableSetWithCap<String>(128)

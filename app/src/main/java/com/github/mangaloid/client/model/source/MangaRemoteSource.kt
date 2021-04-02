@@ -48,13 +48,19 @@ class MangaRemoteSource(
           val date = mangaChapterRemote.date
             ?: return@mapNotNull null
 
+          val chapterId = MangaChapterId(mangaChapterRemote.no)
+
           return@mapNotNull MangaChapter(
-            chapterId = MangaChapterId(mangaChapterRemote.no),
+            chapterId = chapterId,
             mangaChapterIpfsId =  MangaChapterIpfsId(cid),
             title = mangaChapterRemote.title,
             group = mangaChapterRemote.group,
             date = MANGA_CHAPTER_DATE_PARSER.parseDateTime(date),
-            pages = mangaChapterRemote.pages
+            pages = mangaChapterRemote.pages,
+            mangaChapterMeta = MangaChapterMeta(
+              chapterId = chapterId,
+              lastViewedPageIndex = 0
+            )
           )
         }
 

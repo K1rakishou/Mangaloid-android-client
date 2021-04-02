@@ -14,7 +14,8 @@ data class MangaChapter(
   val title: String,
   val group: String,
   val date: DateTime,
-  val pages: Int
+  val pages: Int,
+  val mangaChapterMeta: MangaChapterMeta
 ) {
 
   fun formatDate(): String {

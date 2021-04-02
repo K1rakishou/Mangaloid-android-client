@@ -11,12 +11,13 @@ import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.util.FullScreenUtils.hideSystemUI
 import com.github.mangaloid.client.util.FullScreenUtils.setupFullscreen
+import com.github.mangaloid.client.util.FullScreenUtils.toggleSystemUI
 import com.github.mangaloid.client.util.Logger
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-class ReaderActivity : ComponentActivity() {
+class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderActivityCallbacks {
   private val coroutineScope = MangaloidCoroutineScope()
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,10 +38,12 @@ class ReaderActivity : ComponentActivity() {
     }
 
     window.setupFullscreen()
-    window.hideSystemUI(lightStatusBar = true, lightNavBar = true)
+    window.hideSystemUI()
     setContentView(R.layout.reader_activity_layout)
 
     val readerViewPager = findViewById<ReaderScreenPagerWithImages>(R.id.reader_view_pager)
+    readerViewPager.init(this)
+
     val readScreenViewModel by viewModels<ReaderScreenViewModel>(
       factoryProducer = { viewModelProviderFactoryOf { ReaderScreenViewModel(mangaId, mangaChapterId) } }
     )
@@ -50,9 +53,21 @@ class ReaderActivity : ComponentActivity() {
         val currentMangaChapter = state.currentMangaChapter
           ?: return@collect
 
-        readerViewPager.onMangaLoaded(currentMangaChapter, readScreenViewModel)
+        readerViewPager.onMangaLoaded(
+          initialMangaPageIndex = currentMangaChapter.mangaChapterMeta.lastViewedPageIndex,
+          mangaChapter = currentMangaChapter,
+          readerScreenViewModel = readScreenViewModel
+        )
       }
     }
+  }
+
+  override fun toggleFullScreenMode() {
+    window.toggleSystemUI()
+  }
+
+  override fun closeReader() {
+    finish()
   }
 
   companion object {
