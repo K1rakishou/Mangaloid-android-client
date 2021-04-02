@@ -97,8 +97,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   }
 
   private fun updatePageIndicator(currentPage: Int, totalPages: Int) {
-    // TODO: 4/2/2021 strings
-    pageIndicator.text = "${currentPage}/${totalPages}"
+    pageIndicator.text = context.getString(R.string.page_indicator_template, currentPage, totalPages)
   }
 
   interface ReaderActivityCallbacks {
