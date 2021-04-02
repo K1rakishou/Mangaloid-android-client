@@ -1,12 +1,16 @@
 package com.github.mangaloid.client.util
 
+import android.content.Context
 import android.os.Build
 import android.os.StatFs
+import android.util.DisplayMetrics
 import android.view.ViewGroup
+import androidx.compose.ui.unit.Dp
 
 import java.io.File
 
 object AndroidUtils {
+  lateinit var appContext: Context
 
   val mpMpLayoutParams = ViewGroup.LayoutParams(
     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -53,6 +57,10 @@ object AndroidUtils {
   fun getAvailableSpaceInBytes(file: File): Long {
     val stat = StatFs(file.path)
     return stat.availableBlocksLong * stat.blockSizeLong
+  }
+
+  fun Int.toDp(): Dp {
+    return Dp(this.toFloat() / (appContext.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT.toFloat()))
   }
 
 }

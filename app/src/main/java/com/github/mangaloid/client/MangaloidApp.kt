@@ -2,6 +2,7 @@ package com.github.mangaloid.client
 
 import android.app.Application
 import com.github.mangaloid.client.di.DependenciesGraph
+import com.github.mangaloid.client.util.AndroidUtils
 import com.github.mangaloid.client.util.Logger
 
 class MangaloidApp : Application() {
@@ -15,5 +16,6 @@ class MangaloidApp : Application() {
     }
 
     DependenciesGraph.init(this)
+    AndroidUtils.appContext = this
   }
 }

@@ -20,6 +20,5 @@
     </style>
 
     <style name="Theme.Mangaloidclient.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
-
     <style name="Theme.Mangaloidclient.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>

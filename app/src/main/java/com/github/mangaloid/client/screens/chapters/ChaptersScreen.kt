@@ -16,28 +16,38 @@ import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
 
 @Composable
-fun ChaptersScreen(mangaId: MangaId, onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit) {
-  val viewModel = viewModel<ChaptersScreenViewModel>(
+fun ChaptersScreen(
+  mangaId: MangaId,
+  toolbarViewModel: MangaloidToolbarViewModel,
+  onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
+) {
+  val chaptersScreenViewModel: ChaptersScreenViewModel = viewModel(
     key = "chapters_screen_view_model_${mangaId.id}",
     factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(mangaId = mangaId) }
   )
-
-  val chaptersScreenState by viewModel.stateViewable.collectAsState()
+  val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
   val currentManga = chaptersScreenState.currentManga
 
   if (currentManga == null || currentManga.chapters.isEmpty()) {
-    ChaptersScreenEmptyContent(mangaId)
+    ChaptersScreenEmptyContent(mangaId, toolbarViewModel)
   } else {
-    ChaptersScreenContent(currentManga, onMangaChapterClicked)
+    ChaptersScreenContent(currentManga, toolbarViewModel, onMangaChapterClicked)
   }
 }
 
 @Composable
-private fun ChaptersScreenContent(manga: Manga, onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit) {
+private fun ChaptersScreenContent(
+  manga: Manga,
+  toolbarViewModel: MangaloidToolbarViewModel,
+  onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
+) {
+  toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga) }
+
   Column(modifier = Modifier
     .fillMaxSize()
     .padding(all = 8.dp)) {
@@ -51,7 +61,12 @@ private fun ChaptersScreenContent(manga: Manga, onMangaChapterClicked: (MangaId,
 }
 
 @Composable
-private fun ChaptersScreenEmptyContent(mangaId: MangaId) {
+private fun ChaptersScreenEmptyContent(
+  mangaId: MangaId,
+  toolbarViewModel: MangaloidToolbarViewModel
+) {
+  toolbarViewModel.updateToolbar { onlyTitle("No manga chapters found") }
+
   Box(modifier = Modifier.fillMaxSize()) {
     Text(
       text = "No chapters found for manga with id ${mangaId.id}",
@@ -83,22 +98,30 @@ private fun MangaChapterItem(
     Column(modifier = Modifier.fillMaxSize()) {
       Text(
         text = mangaChapter.title,
-        modifier = Modifier.fillMaxWidth().wrapContentHeight()
+        modifier = Modifier
+          .fillMaxWidth()
+          .wrapContentHeight()
       )
 
       Text(
         text = "TL Group: ${mangaChapter.group}",
-        modifier = Modifier.fillMaxWidth().wrapContentHeight()
+        modifier = Modifier
+          .fillMaxWidth()
+          .wrapContentHeight()
       )
 
       Text(
         text = "Pages: ${mangaChapter.pages}",
-        modifier = Modifier.fillMaxWidth().wrapContentHeight()
+        modifier = Modifier
+          .fillMaxWidth()
+          .wrapContentHeight()
       )
 
       Text(
         text = "Date: ${mangaChapter.formatDate()}",
-        modifier = Modifier.fillMaxWidth().wrapContentHeight()
+        modifier = Modifier
+          .fillMaxWidth()
+          .wrapContentHeight()
       )
     }
   }

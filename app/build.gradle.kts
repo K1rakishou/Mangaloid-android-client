@@ -64,6 +64,7 @@ dependencies {
 
   implementation("com.google.accompanist:accompanist-pager:0.7.0")
   implementation("com.google.accompanist:accompanist-coil:0.7.0")
+  implementation("dev.chrisbanes.accompanist:accompanist-insets:0.6.2")
   implementation("com.squareup.okhttp3:okhttp:4.9.0")
   implementation("com.squareup.moshi:moshi-kotlin:1.11.0")
   implementation("com.google.code.findbugs:jsr305:3.0.2")

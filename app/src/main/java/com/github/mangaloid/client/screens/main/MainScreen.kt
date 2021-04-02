@@ -18,12 +18,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.core.AsyncData
 import com.github.mangaloid.client.model.data.Manga
+import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
 import com.google.accompanist.coil.CoilImage
 
 @Composable
-fun MainScreen(onMangaClicked: (Manga) -> Unit) {
-  val viewModel = viewModel<MainScreenViewModel>()
-  val viewState by viewModel.stateViewable.collectAsState()
+fun MainScreen(toolbarViewModel: MangaloidToolbarViewModel, onMangaClicked: (Manga) -> Unit) {
+  val mainScreenViewModel = viewModel<MainScreenViewModel>()
+  val viewState by mainScreenViewModel.stateViewable.collectAsState()
 
   when (val initialLoadState = viewState.initialLoadState) {
     is AsyncData.NotInitialized -> {
@@ -34,9 +35,9 @@ fun MainScreen(onMangaClicked: (Manga) -> Unit) {
     is AsyncData.Data -> {
       val mainPageMangaList = initialLoadState.data
       if (mainPageMangaList.isEmpty()) {
-        MainScreenEmptyContent()
+        MainScreenEmptyContent(toolbarViewModel)
       } else {
-        MainScreenContent(mainPageMangaList, onMangaClicked)
+        MainScreenContent(mainPageMangaList, toolbarViewModel, onMangaClicked)
       }
     }
   }
@@ -44,7 +45,13 @@ fun MainScreen(onMangaClicked: (Manga) -> Unit) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MainScreenContent(mainPageMangaList: List<Manga>, onMangaClicked: (Manga) -> Unit) {
+private fun MainScreenContent(
+  mainPageMangaList: List<Manga>,
+  toolbarViewModel: MangaloidToolbarViewModel,
+  onMangaClicked: (Manga) -> Unit
+) {
+  toolbarViewModel.updateToolbar { mainScreenToolbar() }
+
   LazyVerticalGrid(
     cells = GridCells.Fixed(2),
     modifier = Modifier.fillMaxSize()
@@ -85,7 +92,9 @@ private fun MangaItem(manga: Manga, onMangaClicked: (Manga) -> Unit) {
 }
 
 @Composable
-private fun MainScreenEmptyContent() {
+private fun MainScreenEmptyContent(toolbarViewModel: MangaloidToolbarViewModel) {
+  toolbarViewModel.updateToolbar { onlyTitle("No manga found") }
+
   Box(modifier = Modifier.fillMaxSize()) {
     Text(
       text = "Nothing found on the server",
