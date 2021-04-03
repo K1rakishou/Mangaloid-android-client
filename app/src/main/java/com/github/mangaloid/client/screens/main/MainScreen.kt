@@ -25,6 +25,13 @@ import com.google.accompanist.coil.CoilImage
 fun MainScreen(toolbarViewModel: MangaloidToolbarViewModel, onMangaClicked: (Manga) -> Unit) {
   val mainScreenViewModel = viewModel<MainScreenViewModel>()
   val viewState by mainScreenViewModel.stateViewable.collectAsState()
+  val toolbarState by toolbarViewModel.stateViewable.collectAsState()
+  val searchInfo = toolbarState.searchInfo
+
+  if (searchInfo != null && searchInfo.searchType == MangaloidToolbarViewModel.SearchType.MangaSearch) {
+    MainScreenSearch(searchInfo.query)
+    return
+  }
 
   when (val initialLoadState = viewState.initialLoadState) {
     is AsyncData.NotInitialized -> {

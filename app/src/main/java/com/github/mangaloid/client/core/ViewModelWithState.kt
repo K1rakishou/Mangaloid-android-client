@@ -16,6 +16,6 @@ abstract class ViewModelWithState<State>(
     _stateActual.value = stateUpdater(_stateActual.value)
   }
 
-  protected fun currentState(): State = _stateActual.value
+  fun currentState(): State = _stateActual.value
 
 }

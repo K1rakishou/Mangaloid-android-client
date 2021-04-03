@@ -33,6 +33,14 @@ fun ChaptersScreen(
   val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
   val currentManga = chaptersScreenState.currentManga
 
+  val toolbarState by toolbarViewModel.stateViewable.collectAsState()
+  val searchInfo = toolbarState.searchInfo
+
+  if (searchInfo != null && searchInfo.searchType == MangaloidToolbarViewModel.SearchType.MangaChapterSearch) {
+    ChaptersScreenSearch(searchInfo.query)
+    return
+  }
+
   if (currentManga == null || currentManga.chapters.isEmpty()) {
     ChaptersScreenEmptyContent(mangaId, toolbarViewModel)
   } else {

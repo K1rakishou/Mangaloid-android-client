@@ -59,18 +59,28 @@ fun MangaloidToolbar(
       toolbarState = toolbarState,
       onToolbarButtonClicked = { toolbarButtonId ->
         when (toolbarButtonId) {
-          MangaloidToolbarViewModel.TOOLBAR_BUTTON_BACK_ARROW -> {
+          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonBackArrow -> {
             navController.popBackStack()
           }
-          MangaloidToolbarViewModel.TOOLBAR_BUTTON_SEARCH -> {
+          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonMangaSearch -> {
             toolbarViewModel.pushToolbarState()
-            toolbarViewModel.updateToolbarDoNotTouchStack { searchToolbar() }
+            toolbarViewModel.updateToolbarDoNotTouchStack {
+              searchToolbar(MangaloidToolbarViewModel.SearchType.MangaSearch)
+            }
           }
-          MangaloidToolbarViewModel.TOOLBAR_BUTTON_CLOSE_SEARCH -> {
+          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonMangaChapterSearch -> {
+            toolbarViewModel.pushToolbarState()
+            toolbarViewModel.updateToolbarDoNotTouchStack {
+              searchToolbar(MangaloidToolbarViewModel.SearchType.MangaChapterSearch)
+            }
+          }
+          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonCloseSearch -> {
             toolbarViewModel.popToolbarState()
           }
-          MangaloidToolbarViewModel.TOOLBAR_BUTTON_CLEAR_SEARCH -> {
-            toolbarViewModel.popToolbarState()
+          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonClearSearch -> {
+            toolbarViewModel.updateToolbarDoNotTouchStack {
+              copy(searchInfo = searchInfo?.copy(query = ""))
+            }
           }
         }
       }
@@ -82,7 +92,7 @@ fun MangaloidToolbar(
 private fun ToolbarContent(
   toolbarViewModel: MangaloidToolbarViewModel,
   toolbarState: MangaloidToolbarViewModel.ToolbarState,
-  onToolbarButtonClicked: (Int) -> Unit
+  onToolbarButtonClicked: (MangaloidToolbarViewModel.ToolbarButtonId) -> Unit
 ) {
   Row(modifier = Modifier
     .fillMaxSize()
@@ -126,7 +136,7 @@ fun RowScope.ToolbarSearchMiddlePart(
   toolbarViewModel: MangaloidToolbarViewModel,
   toolbarState: MangaloidToolbarViewModel.ToolbarState
 ) {
-  var textState by remember { mutableStateOf(TextFieldValue(toolbarState.searchQuery ?: "")) }
+  var textState by remember { mutableStateOf(TextFieldValue(toolbarState.searchInfo?.query ?: "")) }
   val textStyle = remember { TextStyle(color = Color.White, fontSize = 18.sp) }
   val cursorBrush = remember { SolidColor(Color.White) }
   val focusRequester = FocusRequester()
@@ -142,8 +152,13 @@ fun RowScope.ToolbarSearchMiddlePart(
     value = textState,
     textStyle = textStyle,
     onValueChange = { changedText ->
-      toolbarViewModel.updateToolbarDoNotTouchStack { copy(searchQuery = changedText.text) }
-      textState = changedText
+      if (toolbarViewModel.currentState().isSearch()) {
+        toolbarViewModel.updateToolbarDoNotTouchStack {
+          copy(searchInfo = searchInfo?.copy(query = changedText.text))
+        }
+
+        textState = changedText
+      }
     }
   )
 
@@ -187,11 +202,16 @@ fun ColumnScope.ToolbarSimpleTitleMiddlePart(toolbarState: MangaloidToolbarViewM
 @Composable
 fun RowScope.PositionToolbarButton(
   toolbarButton: MangaloidToolbarViewModel.ToolbarButton?,
-  onToolbarButtonClicked: (Int) -> Unit
+  onToolbarButtonClicked: (MangaloidToolbarViewModel.ToolbarButtonId) -> Unit
 ) {
+  if (toolbarButton == null) {
+    return
+  }
+
   when (toolbarButton) {
     is MangaloidToolbarViewModel.ToolbarButton.BackArrow,
-    is MangaloidToolbarViewModel.ToolbarButton.SearchButton,
+    is MangaloidToolbarViewModel.ToolbarButton.MangaSearchButton,
+    is MangaloidToolbarViewModel.ToolbarButton.MangaChapterSearchButton,
     is MangaloidToolbarViewModel.ToolbarButton.ClearSearchButton -> {
       Spacer(modifier = Modifier.width(4.dp))
 
@@ -199,16 +219,13 @@ fun RowScope.PositionToolbarButton(
         painter = painterResource(id = toolbarButton.iconDrawable),
         contentDescription = toolbarButton.contentDescription,
         modifier = Modifier
-          .clickable { onToolbarButtonClicked(toolbarButton.id) }
+          .clickable { onToolbarButtonClicked(toolbarButton.toolbarButtonId) }
           .fillMaxHeight()
           .width(32.dp)
           .align(Alignment.CenterVertically)
       )
 
       Spacer(modifier = Modifier.width(4.dp))
-    }
-    null -> {
-      // no-op
     }
   }
 }

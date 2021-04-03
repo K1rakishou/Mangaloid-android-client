@@ -38,7 +38,8 @@ fun MainActivityRouterContent(
         toolbarViewModel = toolbarViewModel,
         onMangaClicked = { clickedManga ->
           navController.navigate("chapters/${clickedManga.mangaId.id}")
-        })
+        }
+      )
     }
 
     composable(
