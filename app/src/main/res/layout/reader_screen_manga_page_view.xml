@@ -8,6 +8,12 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <FrameLayout
+        android:id="@+id/page_loading_error_view_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
     <com.github.mangaloid.client.ui.widget.LoadingBar
         android:id="@+id/loading_bar"
         android:layout_width="match_parent"

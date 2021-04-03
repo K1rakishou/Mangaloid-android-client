@@ -16,11 +16,13 @@ import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaPageUrl
 import com.github.mangaloid.client.ui.widget.LoadingBar
+import com.github.mangaloid.client.util.AndroidUtils
 import com.github.mangaloid.client.util.Logger
 import com.github.mangaloid.client.util.errorMessageOrClassName
 import com.github.mangaloid.client.util.setVisibilityFast
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.util.concurrent.CancellationException
 
 @SuppressLint("ViewConstructor", "ClickableViewAccessibility")
 class ReaderScreenMangaPageView(
@@ -29,9 +31,10 @@ class ReaderScreenMangaPageView(
   private val onTap: () -> Unit
 ) : FrameLayout(context) {
   private var mangaPageUrl: MangaPageUrl? = null
-  private val coroutineScope = MangaloidCoroutineScope()
 
+  private val coroutineScope = MangaloidCoroutineScope()
   private val mangaPageImageViewer: SubsamplingScaleImageView
+  private val pageLoadingErrorViewContainer: FrameLayout
   private val loadingBar: LoadingBar
 
   private val gestureDetector = GestureDetector(
@@ -51,6 +54,7 @@ class ReaderScreenMangaPageView(
     }
 
     loadingBar = findViewById(R.id.loading_bar)
+    pageLoadingErrorViewContainer = findViewById(R.id.page_loading_error_view_container)
   }
 
   fun bindMangaPage(mangaChapter: MangaChapter, currentMangaPageIndex: Int) {
@@ -63,6 +67,7 @@ class ReaderScreenMangaPageView(
           when (mangaPageLoadingStatus) {
             MangaPageLoader.MangaPageLoadingStatus.Start -> {
               loadingBar.setVisibilityFast(VISIBLE)
+              pageLoadingErrorViewContainer.setVisibilityFast(GONE)
               Logger.d(TAG, "MangaPageLoader.MangaPageLoadingStatus.Start")
             }
             is MangaPageLoader.MangaPageLoadingStatus.Loading -> {
@@ -72,6 +77,8 @@ class ReaderScreenMangaPageView(
               if (mangaPageLoadingStatus.progress != null) {
                 loadingBar.setVisibilityFast(VISIBLE)
                 loadingBar.setProgress(mangaPageLoadingStatus.progress)
+              } else {
+                loadingBar.setVisibilityFast(GONE)
               }
             }
             is MangaPageLoader.MangaPageLoadingStatus.Success -> {
@@ -79,23 +86,45 @@ class ReaderScreenMangaPageView(
                 "file=${mangaPageLoadingStatus.mangaPageFile.absolutePath}")
 
               onMangaPageLoadSuccess(mangaPageLoadingStatus)
-              onMangaPageLoadSuccessEnd()
+              onMangaPageLoadEnd()
             }
             MangaPageLoader.MangaPageLoadingStatus.Canceled -> {
               Logger.e(TAG, "MangaPageLoader.MangaPageLoadingStatus.Canceled")
-              onMangaPageLoadSuccessEnd()
+              onMangaPageLoadError(CancellationException())
+              onMangaPageLoadEnd()
             }
             is MangaPageLoader.MangaPageLoadingStatus.Error -> {
               val errorMessage = mangaPageLoadingStatus.throwable.errorMessageOrClassName()
               Logger.e(TAG, "MangaPageLoader.MangaPageLoadingStatus.Error ${errorMessage}")
-              onMangaPageLoadSuccessEnd()
+              onMangaPageLoadError(mangaPageLoadingStatus.throwable)
+              onMangaPageLoadEnd()
             }
           }
         }
     }
   }
 
-  private fun onMangaPageLoadSuccessEnd() {
+  private fun onMangaPageLoadError(error: Throwable) {
+    pageLoadingErrorViewContainer.setVisibilityFast(VISIBLE)
+    pageLoadingErrorViewContainer.removeAllViews()
+
+    val pageLoadingErrorView = PageLoadingErrorView(
+      context = context,
+      error = error,
+      onRetryClicked = {
+        mangaPageUrl?.let { mpUrl ->
+          coroutineScope.launch { readerScreenViewModel.loadImage(mpUrl) }
+        }
+      }
+    )
+
+    pageLoadingErrorViewContainer.addView(
+      pageLoadingErrorView,
+      AndroidUtils.mpMpLayoutParams
+    )
+  }
+
+  private fun onMangaPageLoadEnd() {
     loadingBar.setVisibilityFast(GONE)
   }
 

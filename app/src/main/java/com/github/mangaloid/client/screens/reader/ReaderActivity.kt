@@ -62,6 +62,12 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
     }
   }
 
+  override fun onDestroy() {
+    super.onDestroy()
+
+    coroutineScope.cancelChildren()
+  }
+
   override fun toggleFullScreenMode() {
     window.toggleSystemUI()
   }
