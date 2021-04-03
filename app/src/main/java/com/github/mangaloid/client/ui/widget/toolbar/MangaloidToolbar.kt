@@ -38,10 +38,6 @@ fun MangaloidToolbar(
   val toolbarHeight = LocalWindowInsets.current.statusBars.top.toDp() + toolbarHeightDp
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
 
-  if (toolbarState.toolbarType == MangaloidToolbarViewModel.ToolbarType.Uninitialized) {
-    return
-  }
-
   BackPressHandler {
     toolbarViewModel.popToolbarStateToRoot()
     return@BackPressHandler false
@@ -51,7 +47,7 @@ fun MangaloidToolbar(
     modifier = Modifier
       .fillMaxWidth()
       .height(toolbarHeight)
-      .background(MaterialTheme.colors.primary)
+      .background(color = MaterialTheme.colors.primary)
       .statusBarsPadding()
   ) {
     ToolbarContent(
@@ -94,29 +90,30 @@ private fun ToolbarContent(
   toolbarState: MangaloidToolbarViewModel.ToolbarState,
   onToolbarButtonClicked: (MangaloidToolbarViewModel.ToolbarButtonId) -> Unit
 ) {
-  Row(modifier = Modifier
-    .fillMaxSize()
-    .padding(horizontal = 8.dp, vertical = 4.dp)
+  Row(
+    modifier = Modifier
+      .fillMaxSize()
+      .background(color = MaterialTheme.colors.primary)
+      .padding(horizontal = 8.dp, vertical = 4.dp)
   ) {
     PositionToolbarButton(toolbarState.leftButton, onToolbarButtonClicked)
-    
+
     when (toolbarState.toolbarType) {
-      MangaloidToolbarViewModel.ToolbarType.Uninitialized -> {
-        // no-op
-      }
       MangaloidToolbarViewModel.ToolbarType.MainToolbar,
       MangaloidToolbarViewModel.ToolbarType.ChaptersToolbar -> {
-        Column(modifier = Modifier
-          .fillMaxHeight()
-          .wrapContentWidth()
+        Column(
+          modifier = Modifier
+            .fillMaxHeight()
+            .wrapContentWidth()
         ) {
           ToolbarSimpleTitleMiddlePart(toolbarState)
         }
       }
       MangaloidToolbarViewModel.ToolbarType.SearchToolbar -> {
-        Row(modifier = Modifier
-          .fillMaxHeight()
-          .wrapContentWidth()
+        Row(
+          modifier = Modifier
+            .fillMaxHeight()
+            .wrapContentWidth()
         ) {
           ToolbarSearchMiddlePart(toolbarViewModel, toolbarState)
         }
@@ -177,7 +174,8 @@ fun ColumnScope.ToolbarSimpleTitleMiddlePart(toolbarState: MangaloidToolbarViewM
       19.sp
     }
 
-    Text(text = toolbarTitle,
+    Text(
+      text = toolbarTitle,
       color = Color.White,
       fontSize = textSize,
       style = Typography.h3,
@@ -188,7 +186,8 @@ fun ColumnScope.ToolbarSimpleTitleMiddlePart(toolbarState: MangaloidToolbarViewM
   }
 
   toolbarState.subtitle?.let { toolbarSubtitle ->
-    Text(text = toolbarSubtitle,
+    Text(
+      text = toolbarSubtitle,
       color = Color.White,
       fontSize = 12.sp,
       style = Typography.subtitle2,

@@ -17,6 +17,7 @@ import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
+import com.github.mangaloid.client.util.StringSpanUtils
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
 
@@ -34,27 +35,31 @@ fun ChaptersScreen(
   val currentManga = chaptersScreenState.currentManga
 
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
-  val searchInfo = toolbarState.searchInfo
+  val searchQuery = toolbarState.searchInfo?.let { searchInfo ->
+    if (searchInfo.searchType != MangaloidToolbarViewModel.SearchType.MangaChapterSearch) {
+      return@let null
+    }
 
-  if (searchInfo != null && searchInfo.searchType == MangaloidToolbarViewModel.SearchType.MangaChapterSearch) {
-    ChaptersScreenSearch(searchInfo.query)
-    return
+    return@let searchInfo.query
   }
 
   if (currentManga == null || currentManga.chapters.isEmpty()) {
     ChaptersScreenEmptyContent(mangaId, toolbarViewModel)
   } else {
-    ChaptersScreenContent(currentManga, toolbarViewModel, onMangaChapterClicked)
+    ChaptersScreenContent(currentManga, searchQuery, toolbarViewModel, onMangaChapterClicked)
   }
 }
 
 @Composable
 private fun ChaptersScreenContent(
   manga: Manga,
+  searchQuery: String?,
   toolbarViewModel: MangaloidToolbarViewModel,
   onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
 ) {
-  toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga) }
+  if (searchQuery == null) {
+    toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga) }
+  }
 
   Column(modifier = Modifier
     .fillMaxSize()
@@ -62,7 +67,12 @@ private fun ChaptersScreenContent(
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
       items(manga.chapters.size) { index ->
-        MangaChapterItem(manga, manga.chapters.get(index), onMangaChapterClicked)
+        MangaChapterItem(
+          manga = manga,
+          mangaChapter = manga.chapters.get(index),
+          searchQuery = searchQuery,
+          onMangaChapterClicked = onMangaChapterClicked
+        )
       }
     }
   }
@@ -87,6 +97,7 @@ private fun ChaptersScreenEmptyContent(
 private fun MangaChapterItem(
   manga: Manga,
   mangaChapter: MangaChapter,
+  searchQuery: String?,
   onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
 ) {
   Row(modifier = Modifier
@@ -104,29 +115,31 @@ private fun MangaChapterItem(
     Spacer(modifier = Modifier.width(8.dp))
 
     Column(modifier = Modifier.fillMaxSize()) {
+      val annotatedTitle = StringSpanUtils.annotateString(mangaChapter.title, searchQuery)
+
       Text(
-        text = mangaChapter.title,
+        text = annotatedTitle,
         modifier = Modifier
           .fillMaxWidth()
           .wrapContentHeight()
       )
 
       Text(
-        text = "TL Group: ${mangaChapter.group}",
+        text = mangaChapter.formatGroup(),
         modifier = Modifier
           .fillMaxWidth()
           .wrapContentHeight()
       )
 
       Text(
-        text = "Pages: ${mangaChapter.pages}",
+        text = mangaChapter.formatPages(),
         modifier = Modifier
           .fillMaxWidth()
           .wrapContentHeight()
       )
 
       Text(
-        text = "Date: ${mangaChapter.formatDate()}",
+        text = mangaChapter.formatDate(),
         modifier = Modifier
           .fillMaxWidth()
           .wrapContentHeight()

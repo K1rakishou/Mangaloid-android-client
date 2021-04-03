@@ -19,7 +19,15 @@ data class MangaChapter(
 ) {
 
   fun formatDate(): String {
-    return MANGA_CHAPTER_DATE_FORMATTER.print(date)
+    return "Date: ${MANGA_CHAPTER_DATE_FORMATTER.print(date)}"
+  }
+
+  fun formatGroup(): String {
+    return "TL Group: ${group}"
+  }
+
+  fun formatPages(): String {
+    return "Pages: ${pages}"
   }
 
   fun chapterCoverUrl(

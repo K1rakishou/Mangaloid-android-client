@@ -25,10 +25,10 @@ class MainActivity : ComponentActivity() {
     window.setupEdgeToEdge()
 
     setContent {
+      val backPressedDispatcher = remember { onBackPressedDispatcher }
+
       ProvideWindowInsets {
         MangaloidclientTheme {
-          val backPressedDispatcher = remember { onBackPressedDispatcher }
-
           CompositionLocalProvider(LocalBackPressedDispatcher provides backPressedDispatcher) {
             Surface(color = MaterialTheme.colors.surface) {
               MainActivityRouter()

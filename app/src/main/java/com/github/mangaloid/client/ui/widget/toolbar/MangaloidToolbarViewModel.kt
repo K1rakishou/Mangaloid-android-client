@@ -70,7 +70,7 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
     fun mainScreenToolbar(): ToolbarState {
       return copy(
         toolbarType = ToolbarType.MainToolbar,
-        title = "Mangaloid",
+        title = DEFAULT_TOOLBAR_TITLE,
         subtitle = null,
         searchInfo = null,
         leftButton = null,
@@ -102,19 +102,20 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
 
     companion object {
       fun default(): ToolbarState = ToolbarState(
-        toolbarType = ToolbarType.Uninitialized,
-        title = null,
+        toolbarType = ToolbarType.MainToolbar,
+        title = DEFAULT_TOOLBAR_TITLE,
         subtitle = null,
         searchInfo = null,
         leftButton = null,
         rightButtons = listOf()
       )
+
+      private const val DEFAULT_TOOLBAR_TITLE = "Mangaloid"
     }
 
   }
 
   enum class ToolbarType {
-    Uninitialized,
     MainToolbar,
     ChaptersToolbar,
     SearchToolbar
@@ -147,21 +148,21 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
     )
 
     class MangaSearchButton : ToolbarButton(
-      ToolbarButtonId.ToolbarButtonMangaSearch,
-      "Manga search",
-      R.drawable.ic_baseline_search_24
+      toolbarButtonId = ToolbarButtonId.ToolbarButtonMangaSearch,
+      contentDescription = "Manga search",
+      iconDrawable = R.drawable.ic_baseline_search_24
     )
 
     class MangaChapterSearchButton : ToolbarButton(
-      ToolbarButtonId.ToolbarButtonMangaChapterSearch,
-      "Manga chapter search",
-      R.drawable.ic_baseline_search_24
+      toolbarButtonId = ToolbarButtonId.ToolbarButtonMangaChapterSearch,
+      contentDescription = "Manga chapter search",
+      iconDrawable = R.drawable.ic_baseline_search_24
     )
 
     class ClearSearchButton : ToolbarButton(
-      ToolbarButtonId.ToolbarButtonClearSearch,
-      "Clear search",
-      R.drawable.ic_baseline_close_24
+      toolbarButtonId = ToolbarButtonId.ToolbarButtonClearSearch,
+      contentDescription = "Clear search",
+      iconDrawable = R.drawable.ic_baseline_close_24
     )
 
     override fun equals(other: Any?): Boolean {
