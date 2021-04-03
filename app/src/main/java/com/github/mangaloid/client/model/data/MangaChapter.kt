@@ -22,12 +22,15 @@ data class MangaChapter(
     return MANGA_CHAPTER_DATE_FORMATTER.print(date)
   }
 
-  fun chapterCoverUrl(chapterPagesUrl: HttpUrl = AppConstants.chapterPagesEndpoint): HttpUrl {
+  fun chapterCoverUrl(
+    pageExtension: String = AppConstants.preferredPageImageExtension,
+    chapterPagesUrl: HttpUrl = AppConstants.chapterPagesEndpoint
+  ): HttpUrl {
     return chapterPagesUrl.newBuilder()
       .addEncodedPathSegment(mangaChapterIpfsId.cid)
       // TODO(hardcoded): 3/29/2021: For now it's impossible to know page's image extension and
       //  there are no chapter covers.
-      .addEncodedPathSegment("1.jpg")
+      .addEncodedPathSegment("1.$pageExtension")
       .build()
   }
 
@@ -35,7 +38,8 @@ data class MangaChapter(
     mangaPage: Int,
     pageExtension: String = AppConstants.preferredPageImageExtension
   ): MangaPageUrl {
-    return MangaPageUrl("https://ipfs.io/ipfs/${mangaChapterIpfsId.cid}/${mangaPage}.$pageExtension".toHttpUrl())
+    val url = "https://ipfs.io/ipfs/${mangaChapterIpfsId.cid}/${mangaPage}.$pageExtension".toHttpUrl()
+    return MangaPageUrl(url)
   }
 
   companion object {

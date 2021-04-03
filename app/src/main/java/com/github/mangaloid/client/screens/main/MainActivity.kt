@@ -10,6 +10,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import com.github.mangaloid.client.helper.LocalBackPressedDispatcher
 import com.github.mangaloid.client.ui.theme.MangaloidclientTheme
 import dev.chrisbanes.accompanist.insets.ProvideWindowInsets
 
@@ -24,8 +27,12 @@ class MainActivity : ComponentActivity() {
     setContent {
       ProvideWindowInsets {
         MangaloidclientTheme {
-          Surface(color = MaterialTheme.colors.surface) {
-            MainActivityRouter()
+          val backPressedDispatcher = remember { onBackPressedDispatcher }
+
+          CompositionLocalProvider(LocalBackPressedDispatcher provides backPressedDispatcher) {
+            Surface(color = MaterialTheme.colors.surface) {
+              MainActivityRouter()
+            }
           }
         }
       }

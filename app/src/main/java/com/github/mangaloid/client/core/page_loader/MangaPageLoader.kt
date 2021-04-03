@@ -19,6 +19,9 @@ import okhttp3.Request
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
+// TODO: 4/2/2021 use partial content for faster concurrent page downloads.
+//  (use https://ipfs.io/api/v0/ls/bafybeihnoou2av5w2bzmwkl6hi25scyzz6sjwdfqp4cwq2ikf6dfmev3ta
+//  to get file sizes of all pages of a chapter).
 class MangaPageLoader(
   private val appScope: CoroutineScope,
   private val cacheHandler: CacheHandler,
