@@ -28,7 +28,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   private val pageIndicator: TextView
   private val rootContainer: ConstraintLayout
   private val closeReaderButton: FrameLayout
-  private val closeReaderButtonContainer: CardView
+  private val readerButtonContainer: CardView
 
   init {
     inflate(context, R.layout.reader_screen_pager_with_images, this)
@@ -36,7 +36,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
     pageIndicator = findViewById(R.id.page_indicator)
     rootContainer = findViewById(R.id.root_container)
     closeReaderButton = findViewById(R.id.close_reader_button)
-    closeReaderButtonContainer = findViewById(R.id.close_reader_button_container)
+    readerButtonContainer = findViewById(R.id.reader_buttons_container)
 
     // TODO: 4/1/2021: This is probably not the best idea but for now it should be enough. In the
     //  future MangaPageLoader should do the page preloading.
@@ -54,12 +54,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
 
     closeReaderButton.setOnClickListener { readerActivityCallbacks?.closeReader() }
 
-    ViewCompat.setOnApplyWindowInsetsListener(pageIndicator) { v, insets ->
-      v.updateLayoutParams<MarginLayoutParams> { bottomMargin = insets.systemWindowInsets.bottom }
-      return@setOnApplyWindowInsetsListener insets
-    }
-
-    ViewCompat.setOnApplyWindowInsetsListener(closeReaderButtonContainer) { v, insets ->
+    ViewCompat.setOnApplyWindowInsetsListener(readerButtonContainer) { v, insets ->
       v.updateLayoutParams<MarginLayoutParams> {
         topMargin = insets.systemWindowInsets.top
         rightMargin = insets.systemWindowInsets.right + 16.dp.value.toInt()

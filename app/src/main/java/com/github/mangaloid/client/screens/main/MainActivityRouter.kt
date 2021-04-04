@@ -1,10 +1,14 @@
 package com.github.mangaloid.client.screens.main
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Scaffold
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.rememberScaffoldState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -16,9 +20,10 @@ import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.screens.chapters.ChaptersScreen
 import com.github.mangaloid.client.screens.reader.ReaderActivity
 import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawer
+import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawerViewModel
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbar
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
-import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawerViewModel
+import dev.chrisbanes.accompanist.insets.navigationBarsPadding
 
 @Composable
 fun MainActivityRouter() {
@@ -78,11 +83,13 @@ fun MainActivityRouterContent(
 ) {
   NavHost(navController = navController, startDestination = "main") {
     composable(route = "main") {
-      MainScreen(
-        toolbarViewModel = toolbarViewModel,
-        drawerViewModel = drawerViewModel,
-        onMangaClicked = { clickedManga -> navController.navigate("chapters/${clickedManga.mangaId.id}") }
-      )
+      Box(modifier = Modifier.navigationBarsPadding()) {
+        MainScreen(
+          toolbarViewModel = toolbarViewModel,
+          drawerViewModel = drawerViewModel,
+          onMangaClicked = { clickedManga -> navController.navigate("chapters/${clickedManga.mangaId.id}") }
+        )
+      }
     }
 
     composable(
@@ -99,19 +106,21 @@ fun MainActivityRouterContent(
 
       val context = LocalContext.current
 
-      ChaptersScreen(
-        extensionId = extensionIdParam,
-        mangaId = mangaIdParam,
-        toolbarViewModel = toolbarViewModel,
-        onMangaChapterClicked = { clickedMangaId, clickedMangaChapterId ->
-          ReaderActivity.launch(
-            context = context,
-            extensionId = extensionIdParam,
-            mangaId = clickedMangaId,
-            mangaChapterId = clickedMangaChapterId
-          )
-        }
-      )
+      Box(modifier = Modifier.navigationBarsPadding()) {
+        ChaptersScreen(
+          extensionId = extensionIdParam,
+          mangaId = mangaIdParam,
+          toolbarViewModel = toolbarViewModel,
+          onMangaChapterClicked = { clickedMangaId, clickedMangaChapterId ->
+            ReaderActivity.launch(
+              context = context,
+              extensionId = extensionIdParam,
+              mangaId = clickedMangaId,
+              mangaChapterId = clickedMangaChapterId
+            )
+          }
+        )
+      }
     }
   }
 }

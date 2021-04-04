@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.core.AsyncData
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
 import com.github.mangaloid.client.core.extension.ExtensionId
@@ -31,9 +30,8 @@ fun MangaloidDrawer() {
   val mangaloidDrawerViewModel = viewModel<MangaloidDrawerViewModel>()
   val mangaloidDrawerState by mangaloidDrawerViewModel.stateViewable.collectAsState()
   val selectedExtensionId = mangaloidDrawerState.selectedExtensionId
-  val extensionsAsync = mangaloidDrawerState.extensionsAsync
 
-  when (extensionsAsync) {
+  when (val extensionsAsync = mangaloidDrawerState.extensionsAsync) {
     is AsyncData.NotInitialized -> return
     is AsyncData.Loading -> {
       // TODO: 4/4/2021
@@ -59,11 +57,10 @@ private fun MangaloidDrawerContent(
   extensions: List<AbstractMangaExtension>,
   onSelected: (ExtensionId) -> Unit
 ) {
-  Surface(
+  Box(
     modifier = Modifier
       .background(MaterialTheme.colors.surface)
-      .fillMaxSize()
-      .navigationBarsPadding()
+      .navigationBarsPadding(left = false, right = false)
       .statusBarsPadding()
   ) {
     LazyColumn(

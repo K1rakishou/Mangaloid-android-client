@@ -73,7 +73,7 @@ private fun MainScreenContent(
   toolbarViewModel.updateToolbar { mainScreenToolbar() }
 
   LazyVerticalGrid(
-    cells = GridCells.Fixed(2),
+    cells = GridCells.Adaptive(192.dp),
     modifier = Modifier.fillMaxSize()
   ) {
     // TODO: 3/29/2021: add search bar

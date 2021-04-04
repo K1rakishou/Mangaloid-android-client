@@ -2,6 +2,7 @@ package com.github.mangaloid.client.util
 
 import android.annotation.SuppressLint
 import android.view.View
+import android.view.ViewGroup
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -181,4 +182,33 @@ fun View.setVisibilityFast(newVisibility: Int) {
   if (visibility != newVisibility) {
     visibility = newVisibility
   }
+}
+
+fun View.updateMargins(
+  left: Int? = null,
+  right: Int? = null,
+  start: Int? = null,
+  end: Int? = null,
+  top: Int? = null,
+  bottom: Int? = null
+) {
+  val layoutParams = layoutParams as? ViewGroup.MarginLayoutParams
+    ?: return
+
+  val newLeft = left ?: layoutParams.leftMargin
+  val newRight = right ?: layoutParams.rightMargin
+  val newStart = start ?: layoutParams.marginStart
+  val newEnd = end ?: layoutParams.marginEnd
+  val newTop = top ?: layoutParams.topMargin
+  val newBottom = bottom ?: layoutParams.bottomMargin
+
+  layoutParams.setMargins(
+    newLeft,
+    newTop,
+    newRight,
+    newBottom
+  )
+
+  layoutParams.marginStart = newStart
+  layoutParams.marginEnd = newEnd
 }
