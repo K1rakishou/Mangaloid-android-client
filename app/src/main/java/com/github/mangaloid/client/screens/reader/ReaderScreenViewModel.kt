@@ -27,9 +27,14 @@ class ReaderScreenViewModel(
     }
   }
 
-  suspend fun loadImage(mangaPageUrl: MangaPageUrl): SharedFlow<MangaPageLoader.MangaPageLoadingStatus> {
+  fun loadImage(mangaPageUrl: MangaPageUrl): SharedFlow<MangaPageLoader.MangaPageLoadingStatus> {
     Logger.d(TAG, "loadImage($mangaPageUrl)")
     return mangaPageLoader.loadMangaPage(mangaPageUrl)
+  }
+
+  fun retryLoadMangaPage(mangaPageUrl: MangaPageUrl) {
+    Logger.d(TAG, "retryLoadMangaPage($mangaPageUrl)")
+    mangaPageLoader.retryLoadMangaPage(mangaPageUrl)
   }
 
   fun cancelLoading(mangaPageUrl: MangaPageUrl) {

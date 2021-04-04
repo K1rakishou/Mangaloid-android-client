@@ -115,7 +115,6 @@ private suspend fun copyToProgressive(
   progressFunc: (suspend (Float) -> Unit)? = null
 ): Long {
   val buffer = ByteArray(bufferSize)
-  val totalRead = 0L
 
   if (contentLength > 0 && progressFunc != null) {
     progressFunc.invoke(0f)
@@ -132,7 +131,7 @@ private suspend fun copyToProgressive(
     }
 
     if (contentLength > 0 && progressFunc != null) {
-      progressFunc.invoke(totalRead.toFloat() / contentLength.toFloat())
+      progressFunc.invoke(bytesCopied.toFloat() / contentLength.toFloat())
     }
 
     outputStream.write(buffer, 0, bytes)

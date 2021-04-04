@@ -29,7 +29,14 @@ object DependenciesGraph {
   private val cacheHandlerSynchronizer = CacheHandlerSynchronizer()
 
   val mangaRepository by lazy { MangaRepository(mangaRemoteSource) }
-  val mangaPageLoader by lazy { MangaPageLoader(appCoroutineScope, cacheHandler, okHttpClient) }
+  val mangaPageLoader by lazy {
+    MangaPageLoader(
+      preloadImagesCount = AppConstants.preloadImagesCount,
+      appScope = appCoroutineScope,
+      cacheHandler = cacheHandler,
+      okHttpClient = okHttpClient
+    )
+  }
 
   val cacheHandler by lazy {
     CacheHandler(

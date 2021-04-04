@@ -71,9 +71,6 @@ class ReaderScreenMangaPageView(
               Logger.d(TAG, "MangaPageLoader.MangaPageLoadingStatus.Start")
             }
             is MangaPageLoader.MangaPageLoadingStatus.Loading -> {
-              Logger.d(TAG, "MangaPageLoader.MangaPageLoadingStatus.Loading, " +
-                "progress=${mangaPageLoadingStatus.progress}")
-
               if (mangaPageLoadingStatus.progress != null) {
                 loadingBar.setVisibilityFast(VISIBLE)
                 loadingBar.setProgress(mangaPageLoadingStatus.progress)
@@ -111,11 +108,7 @@ class ReaderScreenMangaPageView(
     val pageLoadingErrorView = PageLoadingErrorView(
       context = context,
       error = error,
-      onRetryClicked = {
-        mangaPageUrl?.let { mpUrl ->
-          coroutineScope.launch { readerScreenViewModel.loadImage(mpUrl) }
-        }
-      }
+      onRetryClicked = { mangaPageUrl?.let { mpUrl -> readerScreenViewModel.retryLoadMangaPage(mpUrl) } }
     )
 
     pageLoadingErrorViewContainer.addView(
