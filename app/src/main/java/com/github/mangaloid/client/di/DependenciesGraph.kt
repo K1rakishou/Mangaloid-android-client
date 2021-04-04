@@ -4,9 +4,10 @@ import android.content.Context
 import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.core.cache.CacheHandler
 import com.github.mangaloid.client.core.cache.CacheHandlerSynchronizer
+import com.github.mangaloid.client.core.extension.MangaExtensionManager
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.model.repository.MangaRepository
-import com.github.mangaloid.client.model.source.MangaRemoteSource
+import com.github.mangaloid.client.model.source.remote.MangaloidRemoteSource
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.CoroutineScope
@@ -24,11 +25,12 @@ object DependenciesGraph {
   private val cacheDir by lazy {appContext.getCacheDir() }
 
   val appCoroutineScope = CoroutineScope(Dispatchers.Main)
+  val mangaloidRemoteSource by lazy { MangaloidRemoteSource(moshi, okHttpClient, AppConstants.dbEndpoint) }
+  val mangaExtensionManager by lazy { MangaExtensionManager() }
 
-  private val mangaRemoteSource by lazy { MangaRemoteSource(moshi, okHttpClient, AppConstants.dbEndpoint) }
   private val cacheHandlerSynchronizer = CacheHandlerSynchronizer()
 
-  val mangaRepository by lazy { MangaRepository(mangaRemoteSource) }
+  val mangaRepository by lazy { MangaRepository(mangaExtensionManager) }
   val mangaPageLoader by lazy {
     MangaPageLoader(
       preloadImagesCount = AppConstants.preloadImagesCount,

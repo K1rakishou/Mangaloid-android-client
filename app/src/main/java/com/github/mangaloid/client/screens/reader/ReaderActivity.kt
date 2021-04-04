@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.MangaloidCoroutineScope
+import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.util.FullScreenUtils.hideSystemUI
@@ -23,6 +24,14 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
+    val extensionId =
+      ExtensionId.fromRawValueOrNull(intent.getIntExtra(ExtensionId.EXTENSION_ID_KEY, -1))
+    if (extensionId == null) {
+      Logger.e(TAG, "onCreate() Bad ${ExtensionId.EXTENSION_ID_KEY} parameter")
+      finish()
+      return
+    }
+
     val mangaId = MangaId.fromRawValueOrNull(intent.getIntExtra(MangaId.MANGA_ID_KEY, -1))
     if (mangaId == null) {
       Logger.e(TAG, "onCreate() Bad ${MangaId.MANGA_ID_KEY} parameter")
@@ -30,7 +39,8 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
       return
     }
 
-    val mangaChapterId = MangaChapterId.fromRawValueOrNull(intent.getIntExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, -1))
+    val mangaChapterId =
+      MangaChapterId.fromRawValueOrNull(intent.getIntExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, -1))
     if (mangaChapterId == null) {
       Logger.e(TAG, "onCreate() Bad ${MangaChapterId.MANGA_CHAPTER_ID_KEY} parameter")
       finish()
@@ -45,7 +55,15 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
     readerViewPager.init(this)
 
     val readScreenViewModel by viewModels<ReaderScreenViewModel>(
-      factoryProducer = { viewModelProviderFactoryOf { ReaderScreenViewModel(mangaId, mangaChapterId) } }
+      factoryProducer = {
+        viewModelProviderFactoryOf {
+          ReaderScreenViewModel(
+            extensionId = extensionId,
+            mangaId = mangaId,
+            mangaChapterId = mangaChapterId
+          )
+        }
+      }
     )
 
     coroutineScope.launch {
@@ -79,8 +97,14 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
   companion object {
     private const val TAG = "ReaderActivity"
 
-    fun launch(context: Context, mangaId: MangaId, mangaChapterId: MangaChapterId) {
+    fun launch(
+      context: Context,
+      extensionId: ExtensionId,
+      mangaId: MangaId,
+      mangaChapterId: MangaChapterId
+    ) {
       val intent = Intent(context, ReaderActivity::class.java)
+      intent.putExtra(ExtensionId.EXTENSION_ID_KEY, extensionId.rawId)
       intent.putExtra(MangaId.MANGA_ID_KEY, mangaId.id)
       intent.putExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, mangaChapterId.id)
 

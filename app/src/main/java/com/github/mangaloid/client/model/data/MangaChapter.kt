@@ -9,6 +9,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
 data class MangaChapter(
+  val ownerMangaId: MangaId,
   val chapterId: MangaChapterId,
   val mangaChapterIpfsId: MangaChapterIpfsId,
   val title: String,

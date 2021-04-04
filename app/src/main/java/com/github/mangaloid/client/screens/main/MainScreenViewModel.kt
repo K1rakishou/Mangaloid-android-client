@@ -5,6 +5,7 @@ import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.core.AsyncData
 import com.github.mangaloid.client.core.ModularResult
 import com.github.mangaloid.client.core.ViewModelWithState
+import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.repository.MangaRepository
@@ -12,6 +13,7 @@ import com.github.mangaloid.client.util.Logger
 import kotlinx.coroutines.launch
 
 class MainScreenViewModel(
+  private val extensionId: ExtensionId,
   private val mangaRepository: MangaRepository = DependenciesGraph.mangaRepository
 ) : ViewModelWithState<MainScreenViewModel.MainScreenState>(MainScreenState()) {
 
@@ -19,7 +21,7 @@ class MainScreenViewModel(
     viewModelScope.launch {
       updateState { copy(initialLoadState = AsyncData.Loading()) }
 
-      when (val result = mangaRepository.loadMangaFromServer()) {
+      when (val result = mangaRepository.loadMangaFromServer(extensionId)) {
         is ModularResult.Error -> {
           Logger.e(TAG, "mangaRepository.loadMangaFromServer() error", result.error)
           updateState { copy(initialLoadState = AsyncData.Error(result.error)) }

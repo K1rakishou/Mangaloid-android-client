@@ -17,13 +17,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.core.AsyncData
+import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
+import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
 
 @Composable
-fun MainScreen(toolbarViewModel: MangaloidToolbarViewModel, onMangaClicked: (Manga) -> Unit) {
-  val mainScreenViewModel = viewModel<MainScreenViewModel>()
+fun MainScreen(
+  extensionId: ExtensionId,
+  toolbarViewModel: MangaloidToolbarViewModel,
+  onMangaClicked: (Manga) -> Unit
+) {
+
+  val mainScreenViewModel: MainScreenViewModel = viewModel(
+    key = "main_screen_view_model_${extensionId.rawId}",
+    factory = viewModelProviderFactoryOf { MainScreenViewModel(extensionId = extensionId) }
+  )
+
   val viewState by mainScreenViewModel.stateViewable.collectAsState()
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
   val searchInfo = toolbarState.searchInfo

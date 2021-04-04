@@ -11,7 +11,7 @@ abstract class BaseRepository(
 
   @Suppress("RedundantAsync")
   suspend fun <T : Any?> repoAsync(func: suspend () -> T): T {
-    return appScope.async(Dispatchers.IO) { func() }.await()
+    return appScope.async(Dispatchers.Default) { func() }.await()
   }
 
 }

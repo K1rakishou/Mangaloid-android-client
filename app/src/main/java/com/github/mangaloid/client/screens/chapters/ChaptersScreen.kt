@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterId
@@ -23,13 +24,14 @@ import com.google.accompanist.coil.CoilImage
 
 @Composable
 fun ChaptersScreen(
+  extensionId: ExtensionId,
   mangaId: MangaId,
   toolbarViewModel: MangaloidToolbarViewModel,
   onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
 ) {
   val chaptersScreenViewModel: ChaptersScreenViewModel = viewModel(
-    key = "chapters_screen_view_model_${mangaId.id}",
-    factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(mangaId = mangaId) }
+    key = "chapters_screen_view_model_${extensionId.rawId}_${mangaId.id}",
+    factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(extensionId = extensionId, mangaId = mangaId) }
   )
   val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
   val currentManga = chaptersScreenState.currentManga

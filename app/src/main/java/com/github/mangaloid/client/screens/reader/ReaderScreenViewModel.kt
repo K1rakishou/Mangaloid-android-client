@@ -2,6 +2,7 @@ package com.github.mangaloid.client.screens.reader
 
 import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.ViewModelWithState
+import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.data.MangaChapter
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
 class ReaderScreenViewModel(
+  private val extensionId: ExtensionId,
   private val mangaId: MangaId,
   private val mangaChapterId: MangaChapterId,
   private val mangaRepository: MangaRepository = DependenciesGraph.mangaRepository,
@@ -22,7 +24,7 @@ class ReaderScreenViewModel(
 
   init {
     viewModelScope.launch {
-      val mangaChapter = mangaRepository.getMangaChapterByIdFromCache(mangaId, mangaChapterId)
+      val mangaChapter = mangaRepository.getMangaChapterByIdFromCache(extensionId, mangaId, mangaChapterId)
       updateState { copy(currentMangaChapter = mangaChapter) }
     }
   }

@@ -1,4 +1,4 @@
-package com.github.mangaloid.client.model.source
+package com.github.mangaloid.client.model.source.remote
 
 import com.github.mangaloid.client.core.ModularResult
 import com.github.mangaloid.client.model.data.*
@@ -11,7 +11,7 @@ import okhttp3.Request
 import org.joda.time.format.DateTimeFormat
 
 
-class MangaRemoteSource(
+class MangaloidRemoteSource(
   private val moshi: Moshi,
   private val okHttpClient: OkHttpClient,
   private val dbEndpoint: HttpUrl
@@ -51,6 +51,7 @@ class MangaRemoteSource(
           val chapterId = MangaChapterId(mangaChapterRemote.no)
 
           return@mapNotNull MangaChapter(
+            ownerMangaId = mangaId,
             chapterId = chapterId,
             mangaChapterIpfsId =  MangaChapterIpfsId(cid),
             title = mangaChapterRemote.title,
