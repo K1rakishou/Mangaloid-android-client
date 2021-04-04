@@ -61,6 +61,8 @@ class MangaPageLoader(
   }
 
   fun retryLoadMangaPage(mangaPageUrl: MangaPageUrl) {
+    BackgroundUtils.ensureMainThread()
+
     limitingConcurrentCoroutineExecutor.post(key = mangaPageUrl) {
       loadMangaPageInternal(mangaPageUrl)
     }
