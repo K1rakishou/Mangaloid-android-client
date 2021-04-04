@@ -34,8 +34,8 @@ fun ChaptersScreen(
     factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(extensionId = extensionId, mangaId = mangaId) }
   )
   val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
-  val currentManga = chaptersScreenState.currentManga
 
+  val currentManga = chaptersScreenState.currentManga
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
   val searchQuery = toolbarState.searchInfo?.let { searchInfo ->
     if (searchInfo.searchType != MangaloidToolbarViewModel.SearchType.MangaChapterSearch) {
@@ -45,11 +45,22 @@ fun ChaptersScreen(
     return@let searchInfo.query
   }
 
-  if (currentManga == null || currentManga.chapters.isEmpty()) {
-    ChaptersScreenEmptyContent(mangaId, toolbarViewModel)
-  } else {
-    ChaptersScreenContent(currentManga, searchQuery, toolbarViewModel, onMangaChapterClicked)
+  if (currentManga == null) {
+    // Still loading
+    return
   }
+
+  if (currentManga.chapters.isEmpty()) {
+    ChaptersScreenEmptyContent(mangaId, toolbarViewModel)
+    return
+  }
+
+  ChaptersScreenContent(
+    manga = currentManga,
+    searchQuery = searchQuery,
+    toolbarViewModel = toolbarViewModel,
+    onMangaChapterClicked = onMangaChapterClicked
+  )
 }
 
 @Composable

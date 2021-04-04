@@ -10,6 +10,8 @@ import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.model.source.remote.MangaloidRemoteSource
 import kotlinx.coroutines.sync.withLock
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
 class MangaloidExtension(
   private val mangaloidRemoteSource: MangaloidRemoteSource = DependenciesGraph.mangaloidRemoteSource
@@ -17,6 +19,12 @@ class MangaloidExtension(
 
   override val mangaExtensionId: ExtensionId
     get() = ExtensionId.Mangaloid
+
+  override val name: String
+    get() = "Mangaloid"
+
+  override val icon: HttpUrl
+    get() = "https://avatars.githubusercontent.com/u/81382042?s=200&v=4".toHttpUrl()
 
   override suspend fun loadCatalogManga(): ModularResult<List<Manga>> {
     val mangaLoadedFromServerResult = mangaloidRemoteSource.loadManga()

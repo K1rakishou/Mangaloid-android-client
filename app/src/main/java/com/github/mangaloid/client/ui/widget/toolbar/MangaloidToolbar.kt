@@ -24,8 +24,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.github.mangaloid.client.helper.BackPressHandler
 import com.github.mangaloid.client.ui.theme.Typography
+import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawerViewModel
 import com.github.mangaloid.client.util.AndroidUtils.toDp
 import dev.chrisbanes.accompanist.insets.LocalWindowInsets
+import dev.chrisbanes.accompanist.insets.navigationBarsPadding
 import dev.chrisbanes.accompanist.insets.statusBarsPadding
 
 private val toolbarHeightDp = 48.dp
@@ -33,7 +35,8 @@ private val toolbarHeightDp = 48.dp
 @Composable
 fun MangaloidToolbar(
   navController: NavHostController,
-  toolbarViewModel: MangaloidToolbarViewModel
+  toolbarViewModel: MangaloidToolbarViewModel,
+  drawerViewModel: MangaloidDrawerViewModel
 ) {
   val toolbarHeight = LocalWindowInsets.current.statusBars.top.toDp() + toolbarHeightDp
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
@@ -49,34 +52,41 @@ fun MangaloidToolbar(
       .height(toolbarHeight)
       .background(color = MaterialTheme.colors.primary)
       .statusBarsPadding()
+      .navigationBarsPadding(left = true, right = true, bottom = false)
   ) {
     ToolbarContent(
       toolbarViewModel = toolbarViewModel,
       toolbarState = toolbarState,
       onToolbarButtonClicked = { toolbarButtonId ->
         when (toolbarButtonId) {
-          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonBackArrow -> {
+          MangaloidToolbarViewModel.ToolbarButtonId.NoId -> {
+            // no-op
+          }
+          MangaloidToolbarViewModel.ToolbarButtonId.BackArrow -> {
             navController.popBackStack()
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonMangaSearch -> {
+          MangaloidToolbarViewModel.ToolbarButtonId.MangaSearch -> {
             toolbarViewModel.pushToolbarState()
             toolbarViewModel.updateToolbarDoNotTouchStack {
               searchToolbar(MangaloidToolbarViewModel.SearchType.MangaSearch)
             }
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonMangaChapterSearch -> {
+          MangaloidToolbarViewModel.ToolbarButtonId.MangaChapterSearch -> {
             toolbarViewModel.pushToolbarState()
             toolbarViewModel.updateToolbarDoNotTouchStack {
               searchToolbar(MangaloidToolbarViewModel.SearchType.MangaChapterSearch)
             }
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonCloseSearch -> {
+          MangaloidToolbarViewModel.ToolbarButtonId.CloseSearch -> {
             toolbarViewModel.popToolbarState()
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.ToolbarButtonClearSearch -> {
+          MangaloidToolbarViewModel.ToolbarButtonId.ClearSearch -> {
             toolbarViewModel.updateToolbarDoNotTouchStack {
               copy(searchInfo = searchInfo?.copy(query = ""))
             }
+          }
+          MangaloidToolbarViewModel.ToolbarButtonId.DrawerMenu -> {
+            drawerViewModel.openDrawer()
           }
         }
       }
@@ -169,7 +179,7 @@ fun RowScope.ToolbarSearchMiddlePart(
 fun ColumnScope.ToolbarSimpleTitleMiddlePart(toolbarState: MangaloidToolbarViewModel.ToolbarState) {
   toolbarState.title?.let { toolbarTitle ->
     val textSize = if (toolbarState.subtitle.isNullOrEmpty()) {
-      24.sp
+      26.sp
     } else {
       19.sp
     }
@@ -207,15 +217,16 @@ fun RowScope.PositionToolbarButton(
     return
   }
 
-  when (toolbarButton) {
+  return when (toolbarButton) {
     is MangaloidToolbarViewModel.ToolbarButton.BackArrow,
+    is MangaloidToolbarViewModel.ToolbarButton.HamburgMenu,
     is MangaloidToolbarViewModel.ToolbarButton.MangaSearchButton,
     is MangaloidToolbarViewModel.ToolbarButton.MangaChapterSearchButton,
     is MangaloidToolbarViewModel.ToolbarButton.ClearSearchButton -> {
       Spacer(modifier = Modifier.width(4.dp))
 
       Image(
-        painter = painterResource(id = toolbarButton.iconDrawable),
+        painter = painterResource(id = toolbarButton.iconDrawableId),
         contentDescription = toolbarButton.contentDescription,
         modifier = Modifier
           .clickable { onToolbarButtonClicked(toolbarButton.toolbarButtonId) }
@@ -225,6 +236,8 @@ fun RowScope.PositionToolbarButton(
       )
 
       Spacer(modifier = Modifier.width(4.dp))
+
+      Unit
     }
   }
 }

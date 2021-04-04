@@ -7,6 +7,7 @@ import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import kotlinx.coroutines.sync.Mutex
+import okhttp3.HttpUrl
 
 abstract class AbstractMangaExtension {
   protected val mutex = Mutex()
@@ -14,6 +15,8 @@ abstract class AbstractMangaExtension {
   protected val mangaCache = mutableMapOf<MangaId, Manga>()
 
   abstract val mangaExtensionId: ExtensionId
+  abstract val name: String
+  abstract val icon: HttpUrl
 
   abstract suspend fun loadCatalogManga(): ModularResult<List<Manga>>
   abstract suspend fun getMangaChapterByIdFromCache(mangaId: MangaId, mangaChapterId: MangaChapterId): MangaChapter?

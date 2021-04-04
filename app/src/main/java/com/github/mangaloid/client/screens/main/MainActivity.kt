@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         MangaloidclientTheme {
           CompositionLocalProvider(LocalBackPressedDispatcher provides backPressedDispatcher) {
             Surface(color = MaterialTheme.colors.surface) {
-              MainActivityRouter(extensionId = ExtensionId.Mangaloid)
+              MainActivityRouter()
             }
           }
         }

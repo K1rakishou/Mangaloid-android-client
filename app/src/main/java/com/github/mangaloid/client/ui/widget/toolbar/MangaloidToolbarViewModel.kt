@@ -5,10 +5,12 @@ import androidx.compose.runtime.Immutable
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.ViewModelWithState
 import com.github.mangaloid.client.model.data.Manga
+import kotlinx.coroutines.flow.*
 import java.util.*
 
 class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.ToolbarState>(ToolbarState.default()) {
   private val toolbarStateStack = Stack<ToolbarState>()
+
 
   fun updateToolbar(updater: ToolbarState.() -> ToolbarState) {
     popToolbarStateToRoot()
@@ -73,7 +75,7 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
         title = DEFAULT_TOOLBAR_TITLE,
         subtitle = null,
         searchInfo = null,
-        leftButton = null,
+        leftButton = ToolbarButton.HamburgMenu(),
         rightButtons = listOf(ToolbarButton.MangaSearchButton())
       )
     }
@@ -84,7 +86,7 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
         title = null,
         subtitle = null,
         searchInfo = SearchInfo(query = "", searchType = searchType),
-        leftButton = ToolbarButton.BackArrow(ToolbarButtonId.ToolbarButtonCloseSearch),
+        leftButton = ToolbarButton.BackArrow(ToolbarButtonId.CloseSearch),
         rightButtons = listOf(ToolbarButton.ClearSearchButton())
       )
     }
@@ -95,7 +97,7 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
         title = manga.title,
         subtitle = "${manga.chapters.size} chapters",
         searchInfo = null,
-        leftButton = ToolbarButton.BackArrow(ToolbarButtonId.ToolbarButtonBackArrow),
+        leftButton = ToolbarButton.BackArrow(ToolbarButtonId.BackArrow),
         rightButtons = listOf(ToolbarButton.MangaChapterSearchButton())
       )
     }
@@ -106,7 +108,7 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
         title = DEFAULT_TOOLBAR_TITLE,
         subtitle = null,
         searchInfo = null,
-        leftButton = null,
+        leftButton = ToolbarButton.HamburgMenu(),
         rightButtons = listOf()
       )
 
@@ -127,11 +129,13 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
   }
 
   enum class ToolbarButtonId(val id: Int) {
-    ToolbarButtonBackArrow(0),
-    ToolbarButtonMangaSearch(1),
-    ToolbarButtonCloseSearch(2),
-    ToolbarButtonClearSearch(3),
-    ToolbarButtonMangaChapterSearch(4)
+    NoId(-1),
+    BackArrow(0),
+    MangaSearch(1),
+    CloseSearch(2),
+    ClearSearch(3),
+    MangaChapterSearch(4),
+    DrawerMenu(5)
   }
 
   data class SearchInfo(val query: String, val searchType: SearchType)
@@ -139,30 +143,36 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
   sealed class ToolbarButton(
     val toolbarButtonId: ToolbarButtonId,
     val contentDescription: String,
-    @DrawableRes val iconDrawable: Int
+    @DrawableRes val iconDrawableId: Int
   ) {
     class BackArrow(id: ToolbarButtonId) : ToolbarButton(
       toolbarButtonId = id,
       contentDescription = "Back",
-      iconDrawable = R.drawable.ic_baseline_arrow_back_24
+      iconDrawableId = R.drawable.ic_baseline_arrow_back_24
+    )
+
+    class HamburgMenu : ToolbarButton(
+      toolbarButtonId = ToolbarButtonId.DrawerMenu,
+      contentDescription = "Drawer menu",
+      iconDrawableId = R.drawable.ic_baseline_menu_24
     )
 
     class MangaSearchButton : ToolbarButton(
-      toolbarButtonId = ToolbarButtonId.ToolbarButtonMangaSearch,
+      toolbarButtonId = ToolbarButtonId.MangaSearch,
       contentDescription = "Manga search",
-      iconDrawable = R.drawable.ic_baseline_search_24
+      iconDrawableId = R.drawable.ic_baseline_search_24
     )
 
     class MangaChapterSearchButton : ToolbarButton(
-      toolbarButtonId = ToolbarButtonId.ToolbarButtonMangaChapterSearch,
+      toolbarButtonId = ToolbarButtonId.MangaChapterSearch,
       contentDescription = "Manga chapter search",
-      iconDrawable = R.drawable.ic_baseline_search_24
+      iconDrawableId = R.drawable.ic_baseline_search_24
     )
 
     class ClearSearchButton : ToolbarButton(
-      toolbarButtonId = ToolbarButtonId.ToolbarButtonClearSearch,
+      toolbarButtonId = ToolbarButtonId.ClearSearch,
       contentDescription = "Clear search",
-      iconDrawable = R.drawable.ic_baseline_close_24
+      iconDrawableId = R.drawable.ic_baseline_close_24
     )
 
     override fun equals(other: Any?): Boolean {
@@ -173,7 +183,7 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
 
       if (toolbarButtonId != other.toolbarButtonId) return false
       if (contentDescription != other.contentDescription) return false
-      if (iconDrawable != other.iconDrawable) return false
+      if (iconDrawableId != other.iconDrawableId) return false
 
       return true
     }
@@ -181,7 +191,7 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
     override fun hashCode(): Int {
       var result = toolbarButtonId.id.hashCode()
       result = 31 * result + contentDescription.hashCode()
-      result = 31 * result + iconDrawable
+      result = 31 * result + iconDrawableId
       return result
     }
   }
