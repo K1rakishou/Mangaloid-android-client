@@ -86,11 +86,13 @@ private fun MainScreenContent(
 
 @Composable
 private fun MangaItem(manga: Manga, onMangaClicked: (Manga) -> Unit) {
-  Row(modifier = Modifier
-    .fillMaxWidth()
-    .height(160.dp)
-    .padding(4.dp)
-    .clickable { onMangaClicked(manga) }) {
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .height(160.dp)
+      .padding(4.dp)
+      .clickable { onMangaClicked(manga) }
+  ) {
 
     CoilImage(
       data = manga.coverUrl(),

@@ -31,7 +31,12 @@ fun ChaptersScreen(
 ) {
   val chaptersScreenViewModel: ChaptersScreenViewModel = viewModel(
     key = "chapters_screen_view_model_${extensionId.rawId}_${mangaId.id}",
-    factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(extensionId = extensionId, mangaId = mangaId) }
+    factory = viewModelProviderFactoryOf {
+      ChaptersScreenViewModel(
+        extensionId = extensionId,
+        mangaId = mangaId
+      )
+    }
   )
   val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
 
@@ -74,10 +79,11 @@ private fun ChaptersScreenContent(
     toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga) }
   }
 
-  Column(modifier = Modifier
-    .fillMaxSize()
-    .padding(all = 8.dp)) {
-
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .padding(all = 8.dp)
+  ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
       items(manga.chapters.size) { index ->
         MangaChapterItem(
@@ -96,7 +102,12 @@ private fun ChaptersScreenEmptyContent(
   mangaId: MangaId,
   toolbarViewModel: MangaloidToolbarViewModel
 ) {
-  toolbarViewModel.updateToolbar { onlyTitle("No manga chapters found") }
+  toolbarViewModel.updateToolbar {
+    titleWithBackButton(
+      backButtonId = MangaloidToolbarViewModel.ToolbarButtonId.BackArrow,
+      title = "No manga chapters found"
+    )
+  }
 
   Box(modifier = Modifier.fillMaxSize()) {
     Text(
@@ -113,10 +124,12 @@ private fun MangaChapterItem(
   searchQuery: String?,
   onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
 ) {
-  Row(modifier = Modifier
-    .fillMaxWidth()
-    .height(128.dp)
-    .clickable { onMangaChapterClicked(manga.mangaId, mangaChapter.chapterId) }
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .height(128.dp)
+      .padding(4.dp)
+      .clickable { onMangaChapterClicked(manga.mangaId, mangaChapter.chapterId) }
   ) {
     CoilImage(
       data = mangaChapter.chapterCoverUrl(),

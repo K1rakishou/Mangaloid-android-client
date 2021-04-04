@@ -69,6 +69,16 @@ class MangaloidToolbarViewModel : ViewModelWithState<MangaloidToolbarViewModel.T
       )
     }
 
+    fun titleWithBackButton(backButtonId: ToolbarButtonId, title: String): ToolbarState {
+      return copy(
+        title = title,
+        subtitle = null,
+        searchInfo = null,
+        leftButton = ToolbarButton.BackArrow(backButtonId),
+        rightButtons = listOf()
+      )
+    }
+
     fun mainScreenToolbar(): ToolbarState {
       return copy(
         toolbarType = ToolbarType.MainToolbar,
