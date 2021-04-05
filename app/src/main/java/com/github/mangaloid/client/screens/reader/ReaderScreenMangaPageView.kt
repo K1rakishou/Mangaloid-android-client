@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.view.GestureDetector
-import android.view.MotionEvent
+import android.view.View
 import android.widget.FrameLayout
 import androidx.core.net.toUri
 import com.davemorrissey.labs.subscaleview.ImageSource
@@ -13,8 +13,8 @@ import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.setPreferre
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.MangaloidCoroutineScope
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
-import com.github.mangaloid.client.model.data.MangaChapter
-import com.github.mangaloid.client.model.data.MangaPageUrl
+import com.github.mangaloid.client.helper.SimpleTapListener
+import com.github.mangaloid.client.model.data.ViewablePage
 import com.github.mangaloid.client.ui.widget.LoadingBar
 import com.github.mangaloid.client.util.AndroidUtils
 import com.github.mangaloid.client.util.Logger
@@ -29,8 +29,8 @@ class ReaderScreenMangaPageView(
   context: Context,
   private val readerScreenViewModel: ReaderScreenViewModel,
   private val onTap: () -> Unit
-) : FrameLayout(context) {
-  private var mangaPageUrl: MangaPageUrl? = null
+) : FrameLayout(context), ReaderScreenMangaPageViewContract<ViewablePage.MangaPage> {
+  private var viewableMangaPage: ViewablePage.MangaPage? = null
 
   private val coroutineScope = MangaloidCoroutineScope()
   private val mangaPageImageViewer: SubsamplingScaleImageView
@@ -39,7 +39,7 @@ class ReaderScreenMangaPageView(
 
   private val gestureDetector = GestureDetector(
     context,
-    TapListener { onTap() }
+    SimpleTapListener { onTap() }
   )
 
   init {
@@ -57,12 +57,16 @@ class ReaderScreenMangaPageView(
     pageLoadingErrorViewContainer = findViewById(R.id.page_loading_error_view_container)
   }
 
-  fun bindMangaPage(mangaChapter: MangaChapter, currentMangaPageIndex: Int) {
-    this.mangaPageUrl = mangaChapter.mangaChapterPageUrl(currentMangaPageIndex)
-    Logger.d(TAG, "bindMangaPage(${mangaPageUrl!!.url})")
+  override fun view(): View {
+    return this
+  }
+
+  override fun bind(viewablePage: ViewablePage.MangaPage) {
+    this.viewableMangaPage = viewablePage
+    Logger.d(TAG, "bindMangaPage(${viewableMangaPage!!.mangaPageUrl.url})")
 
     coroutineScope.launch {
-      readerScreenViewModel.loadImage(mangaPageUrl!!)
+      readerScreenViewModel.loadImage(viewableMangaPage!!.mangaPageUrl)
         .collect { mangaPageLoadingStatus ->
           when (mangaPageLoadingStatus) {
             MangaPageLoader.MangaPageLoadingStatus.Start -> {
@@ -101,6 +105,13 @@ class ReaderScreenMangaPageView(
     }
   }
 
+  override fun unbind() {
+    Logger.d(TAG, "unbindMangaPage(${viewableMangaPage?.mangaPageUrl?.url})")
+
+    viewableMangaPage?.mangaPageUrl?.let { readerScreenViewModel.cancelLoading(it) }
+    coroutineScope.cancelChildren()
+  }
+
   private fun onMangaPageLoadError(error: Throwable) {
     pageLoadingErrorViewContainer.setVisibilityFast(VISIBLE)
     pageLoadingErrorViewContainer.removeAllViews()
@@ -108,7 +119,7 @@ class ReaderScreenMangaPageView(
     val pageLoadingErrorView = PageLoadingErrorView(
       context = context,
       error = error,
-      onRetryClicked = { mangaPageUrl?.let { mpUrl -> readerScreenViewModel.retryLoadMangaPage(mpUrl) } }
+      onRetryClicked = { viewableMangaPage?.mangaPageUrl?.let { mpUrl -> readerScreenViewModel.retryLoadMangaPage(mpUrl) } }
     )
 
     pageLoadingErrorViewContainer.addView(
@@ -127,24 +138,6 @@ class ReaderScreenMangaPageView(
         .uri(mangaPageLoadingStatus.mangaPageFile.toUri())
         .tiling(true)
     )
-  }
-
-  fun unbindMangaPage() {
-    Logger.d(TAG, "unbindMangaPage(${mangaPageUrl?.url})")
-
-    mangaPageUrl?.let { readerScreenViewModel.cancelLoading(it) }
-    coroutineScope.cancelChildren()
-  }
-
-  class TapListener(
-    private val onTap: () -> Unit
-  ) : GestureDetector.SimpleOnGestureListener() {
-
-    override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
-      onTap()
-      return true
-    }
-
   }
 
   companion object {

@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.MangaloidCoroutineScope
+import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
@@ -24,8 +25,7 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    val extensionId =
-      ExtensionId.fromRawValueOrNull(intent.getIntExtra(ExtensionId.EXTENSION_ID_KEY, -1))
+    val extensionId = ExtensionId.fromRawValueOrNull(intent.getIntExtra(ExtensionId.EXTENSION_ID_KEY, -1))
     if (extensionId == null) {
       Logger.e(TAG, "onCreate() Bad ${ExtensionId.EXTENSION_ID_KEY} parameter")
       finish()
@@ -39,8 +39,7 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
       return
     }
 
-    val mangaChapterId =
-      MangaChapterId.fromRawValueOrNull(intent.getIntExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, -1))
+    val mangaChapterId = MangaChapterId.fromRawValueOrNull(intent.getIntExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, -1))
     if (mangaChapterId == null) {
       Logger.e(TAG, "onCreate() Bad ${MangaChapterId.MANGA_CHAPTER_ID_KEY} parameter")
       finish()
@@ -60,7 +59,7 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
           ReaderScreenViewModel(
             extensionId = extensionId,
             mangaId = mangaId,
-            mangaChapterId = mangaChapterId
+            initialMangaChapterId = mangaChapterId
           )
         }
       }
@@ -68,14 +67,24 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
 
     coroutineScope.launch {
       readScreenViewModel.stateViewable.collect { state ->
-        val currentMangaChapter = state.currentMangaChapter
+        val currentMangaChapterResult = state.currentMangaChapterResult
           ?: return@collect
 
-        readerViewPager.onMangaLoaded(
-          initialMangaPageIndex = currentMangaChapter.mangaChapterMeta.lastViewedPageIndex,
-          mangaChapter = currentMangaChapter,
-          readerScreenViewModel = readScreenViewModel
-        )
+        when (currentMangaChapterResult) {
+          is ModularResult.Error -> {
+            Logger.e(TAG, "currentMangaChapterResult is error", currentMangaChapterResult.error)
+            return@collect
+          }
+          is ModularResult.Value -> {
+            val viewableMangaChapter = currentMangaChapterResult.value
+
+            readerViewPager.onMangaLoaded(
+              lastViewedPageIndex = viewableMangaChapter.mangaChapterMeta.lastViewedPageIndex,
+              viewableMangaChapter = viewableMangaChapter,
+              readerScreenViewModel = readScreenViewModel
+            )
+          }
+        }
       }
     }
   }

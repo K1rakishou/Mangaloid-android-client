@@ -1,7 +1,7 @@
 package com.github.mangaloid.client.util
 
-import com.github.mangaloid.client.core.ModularResult
-import com.github.mangaloid.client.core.ModularResult.Companion.Try
+import com.github.mangaloid.client.core.data_structure.ModularResult
+import com.github.mangaloid.client.core.data_structure.ModularResult.Companion.Try
 import com.github.mangaloid.client.core.cache.CacheHandler
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi

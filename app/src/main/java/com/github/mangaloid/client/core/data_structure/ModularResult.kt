@@ -1,4 +1,4 @@
-package com.github.mangaloid.client.core
+package com.github.mangaloid.client.core.data_structure
 
 import java.util.*
 import java.util.concurrent.Callable

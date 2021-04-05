@@ -18,7 +18,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.mangaloid.client.core.AsyncData
+import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.google.accompanist.coil.CoilImage

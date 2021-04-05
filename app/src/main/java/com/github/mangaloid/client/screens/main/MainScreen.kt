@@ -16,7 +16,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.mangaloid.client.core.AsyncData
+import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawerViewModel
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel

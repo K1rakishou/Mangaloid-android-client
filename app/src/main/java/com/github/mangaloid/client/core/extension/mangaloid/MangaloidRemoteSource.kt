@@ -1,6 +1,6 @@
-package com.github.mangaloid.client.model.source.remote
+package com.github.mangaloid.client.core.extension.mangaloid
 
-import com.github.mangaloid.client.core.ModularResult
+import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.util.suspendConvertIntoJsonObject
 import com.squareup.moshi.Moshi
@@ -13,23 +13,26 @@ import org.joda.time.format.DateTimeFormat
 
 class MangaloidRemoteSource(
   private val moshi: Moshi,
-  private val okHttpClient: OkHttpClient,
-  private val dbEndpoint: HttpUrl
+  private val okHttpClient: OkHttpClient
 ) {
   private val mangaRemoteListAdapter by lazy {
-    return@lazy moshi.adapter<List<MangaRemote>>(
-      Types.newParameterizedType(MutableList::class.java, MangaRemote::class.java)
+    return@lazy moshi.adapter<List<MangaloidMangaRemote>>(
+      Types.newParameterizedType(MutableList::class.java, MangaloidMangaRemote::class.java)
     )
   }
 
-  suspend fun loadManga(): ModularResult<List<Manga>> {
+  suspend fun loadManga(
+    dbEndpoint: HttpUrl,
+    chapterPagesUrl: HttpUrl,
+    coversUrl: HttpUrl
+  ): ModularResult<List<Manga>> {
     return ModularResult.Try {
       val request = Request.Builder()
         .get()
         .url(dbEndpoint)
         .build()
 
-      val mangaList = okHttpClient.suspendConvertIntoJsonObject<List<MangaRemote>>(
+      val mangaList = okHttpClient.suspendConvertIntoJsonObject<List<MangaloidMangaRemote>>(
         request = request,
         moshi = moshi,
         adapterFunc = { mangaRemoteListAdapter }
@@ -39,20 +42,23 @@ class MangaloidRemoteSource(
         val mangaId = MangaId.fromRawValueOrNull(mangaRemote.id)
           ?: return@mapNotNull null
 
-        val chapters = mangaRemote.chapters.mapNotNull { mangaChapterRemote ->
+        val chapters = mangaRemote.chapters.mapIndexedNotNull { index, mangaChapterRemote ->
           // TODO: 4/1/2021 some chapters have no cid
           val cid = mangaChapterRemote.cid
-            ?: return@mapNotNull null
+            ?: return@mapIndexedNotNull null
 
           // TODO: 4/1/2021 some chapters have no date
-          val date = mangaChapterRemote.date
-            ?: return@mapNotNull null
+          val date = mangaChapterRemote.date ?: "01-01-2021"
 
+          val prevChapterId = mangaRemote.chapters.getOrNull(index - 1)?.no?.let { no -> MangaChapterId(no) }
           val chapterId = MangaChapterId(mangaChapterRemote.no)
+          val nextChapterId = mangaRemote.chapters.getOrNull(index + 1)?.no?.let { no -> MangaChapterId(no) }
 
-          return@mapNotNull MangaChapter(
+          return@mapIndexedNotNull MangaChapter(
             ownerMangaId = mangaId,
+            prevChapterId = prevChapterId,
             chapterId = chapterId,
+            nextChapterId = nextChapterId,
             mangaChapterIpfsId =  MangaChapterIpfsId(cid),
             title = mangaChapterRemote.title,
             group = mangaChapterRemote.group,
@@ -60,15 +66,17 @@ class MangaloidRemoteSource(
             pages = mangaChapterRemote.pages,
             mangaChapterMeta = MangaChapterMeta(
               chapterId = chapterId,
-              lastViewedPageIndex = 0
-            )
+              lastViewedPageIndex = null // TODO: 4/5/2021 load this from the DB
+            ),
+            chapterPagesUrl = chapterPagesUrl
           )
         }
 
         return@mapNotNull Manga(
           mangaId = mangaId,
           title = mangaRemote.title,
-          chapters = chapters
+          chapters = chapters,
+          coversUrl = coversUrl
         )
       }
     }

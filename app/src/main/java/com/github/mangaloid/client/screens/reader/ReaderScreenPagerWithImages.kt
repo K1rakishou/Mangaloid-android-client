@@ -15,7 +15,8 @@ import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.AppConstants
-import com.github.mangaloid.client.model.data.MangaChapter
+import com.github.mangaloid.client.model.data.ViewableMangaChapter
+import com.github.mangaloid.client.model.data.ViewablePage
 
 class ReaderScreenPagerWithImages @JvmOverloads constructor(
   context: Context,
@@ -44,11 +45,11 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
 
     viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
       override fun onPageSelected(position: Int) {
-        val mangaChapter = (viewPager.adapter as? ViewPagerAdapter)?.mangaChapter
+        val viewableMangaChapter = (viewPager.adapter as? ViewPagerAdapter)?.viewableMangaChapter
           ?: return
 
-        mangaChapter.mangaChapterMeta.lastViewedPageIndex = position
-        updatePageIndicator(position + 1, mangaChapter.pages)
+        viewableMangaChapter.mangaChapterMeta.lastViewedPageIndex = position
+        updatePageIndicator(position + 1, viewableMangaChapter.pagesCount())
       }
     })
 
@@ -68,27 +69,65 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   }
 
   fun onMangaLoaded(
-    initialMangaPageIndex: Int,
-    mangaChapter: MangaChapter,
+    lastViewedPageIndex: Int?,
+    viewableMangaChapter: ViewableMangaChapter,
     readerScreenViewModel: ReaderScreenViewModel
   ) {
-    updatePageIndicator(initialMangaPageIndex + 1, mangaChapter.pages)
+    val initialMangaPageIndex = lastViewedPageIndex
+      ?: viewableMangaChapter.firstNonMetaPageIndex()
 
-    val viewPagerAdapter = ViewPagerAdapter(mangaChapter) { position, parent ->
-      val readerScreenMangaPageView = ReaderScreenMangaPageView(
-        context = parent.context,
-        readerScreenViewModel = readerScreenViewModel,
-        onTap = { readerActivityCallbacks?.toggleFullScreenMode() }
-      )
+    updatePageIndicator(initialMangaPageIndex + 1, viewableMangaChapter.pagesCount())
 
-      val currentMangaPageIndex = position + 1
-      readerScreenMangaPageView.bindMangaPage(mangaChapter, currentMangaPageIndex)
-
-      return@ViewPagerAdapter readerScreenMangaPageView
+    val viewPagerAdapter = ViewPagerAdapter(viewableMangaChapter) { position, parent ->
+      getViewInternal(position, parent, viewableMangaChapter, readerScreenViewModel)
     }
 
     viewPager.adapter = viewPagerAdapter
     viewPager.currentItem = initialMangaPageIndex
+  }
+
+  private fun getViewInternal(
+    position: Int,
+    parent: ViewGroup,
+    viewableMangaChapter: ViewableMangaChapter,
+    readerScreenViewModel: ReaderScreenViewModel
+  ): ReaderScreenMangaPageViewContract<ViewablePage> {
+    when (val viewablePage = viewableMangaChapter.chapterPages[position]) {
+      is ViewablePage.PrevChapterPage -> {
+        val readerScreenPrevMangaChapterView = ReaderScreenPrevMangaChapterView(
+          context = parent.context,
+          readerScreenViewModel = readerScreenViewModel,
+          onTap = { onViewablePageTapped() }
+        )
+
+        readerScreenPrevMangaChapterView.bind(viewablePage)
+        return readerScreenPrevMangaChapterView as ReaderScreenMangaPageViewContract<ViewablePage>
+      }
+      is ViewablePage.MangaPage -> {
+        val readerScreenMangaPageView = ReaderScreenMangaPageView(
+          context = parent.context,
+          readerScreenViewModel = readerScreenViewModel,
+          onTap = { onViewablePageTapped() }
+        )
+
+        readerScreenMangaPageView.bind(viewablePage)
+        return readerScreenMangaPageView as ReaderScreenMangaPageViewContract<ViewablePage>
+      }
+      is ViewablePage.NextChapterPage -> {
+        val readerScreenNextMangaChapterView = ReaderScreenNextMangaChapterView(
+          context = parent.context,
+          readerScreenViewModel = readerScreenViewModel,
+          onTap = { onViewablePageTapped() }
+        )
+
+        readerScreenNextMangaChapterView.bind(viewablePage)
+        return readerScreenNextMangaChapterView as ReaderScreenMangaPageViewContract<ViewablePage>
+      }
+    }
+  }
+
+  private fun onViewablePageTapped() {
+    readerActivityCallbacks?.toggleFullScreenMode()
   }
 
   private fun updatePageIndicator(currentPage: Int, totalPages: Int) {
@@ -101,25 +140,27 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   }
 
   class ViewPagerAdapter(
-    val mangaChapter: MangaChapter,
-    private val getView: (position: Int, parent: ViewGroup) -> ReaderScreenMangaPageView
+    val viewableMangaChapter: ViewableMangaChapter,
+    private val getView: (position: Int, parent: ViewGroup) -> ReaderScreenMangaPageViewContract<ViewablePage>
   ) : PagerAdapter() {
 
     override fun instantiateItem(container: ViewGroup, position: Int): Any {
-      val view = getView(position, container)
-      container.addView(view)
-      return view
+      val readerScreenMangaPageViewContract = getView(position, container)
+      container.addView(readerScreenMangaPageViewContract.view())
+      return readerScreenMangaPageViewContract
     }
 
     override fun destroyItem(container: ViewGroup, position: Int, obj: Any) {
-      val readerScreenMangaPageView = obj as ReaderScreenMangaPageView
-      readerScreenMangaPageView.unbindMangaPage()
-      container.removeView(readerScreenMangaPageView)
+      val readerScreenMangaPageViewContract = obj as ReaderScreenMangaPageViewContract<ViewablePage>
+      readerScreenMangaPageViewContract.unbind()
+      container.removeView(readerScreenMangaPageViewContract.view())
     }
 
-    override fun getCount(): Int = mangaChapter.pages
+    override fun isViewFromObject(view: View, obj: Any): Boolean {
+      return view === (obj as ReaderScreenMangaPageViewContract<ViewablePage>).view()
+    }
 
-    override fun isViewFromObject(view: View, obj: Any): Boolean = view === obj
+    override fun getCount(): Int = viewableMangaChapter.pagesCount()
   }
 
 }

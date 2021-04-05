@@ -7,7 +7,8 @@ import com.github.mangaloid.client.core.cache.CacheHandlerSynchronizer
 import com.github.mangaloid.client.core.extension.MangaExtensionManager
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.model.repository.MangaRepository
-import com.github.mangaloid.client.model.source.remote.MangaloidRemoteSource
+import com.github.mangaloid.client.core.extension.mangaloid.MangaloidRemoteSource
+import com.github.mangaloid.client.model.cache.MangaCache
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.CoroutineScope
@@ -22,15 +23,28 @@ object DependenciesGraph {
   lateinit var moshi: Moshi
 
   private val verboseLogs = true
-  private val cacheDir by lazy {appContext.getCacheDir() }
-
+  private val cacheDir by lazy { appContext.getCacheDir() }
   val appCoroutineScope = CoroutineScope(Dispatchers.Main)
-  val mangaloidRemoteSource by lazy { MangaloidRemoteSource(moshi, okHttpClient, AppConstants.dbEndpoint) }
+
+  val mangaloidRemoteSource by lazy {
+    MangaloidRemoteSource(
+      moshi = moshi,
+      okHttpClient = okHttpClient
+    )
+  }
+
   val mangaExtensionManager by lazy { MangaExtensionManager() }
 
-  private val cacheHandlerSynchronizer = CacheHandlerSynchronizer()
+  private val cacheHandlerSynchronizer by lazy { CacheHandlerSynchronizer() }
+  private val mangaCache by lazy { MangaCache() }
 
-  val mangaRepository by lazy { MangaRepository(mangaExtensionManager) }
+  val mangaRepository by lazy {
+    MangaRepository(
+      mangaCache = mangaCache,
+      mangaExtensionManager = mangaExtensionManager
+    )
+  }
+
   val mangaPageLoader by lazy {
     MangaPageLoader(
       preloadImagesCount = AppConstants.preloadImagesCount,

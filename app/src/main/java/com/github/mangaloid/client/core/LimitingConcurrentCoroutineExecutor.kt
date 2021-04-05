@@ -20,8 +20,9 @@ class LimitingConcurrentCoroutineExecutor(
 
   fun post(key: Any?, func: suspend () -> Unit) {
     val job = coroutineScope.launch(context = dispatcher) {
+      semaphore.acquire()
+
       try {
-        semaphore.acquire()
         ensureActive()
         func()
       } catch (error: Throwable) {

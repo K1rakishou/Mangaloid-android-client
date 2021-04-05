@@ -2,8 +2,8 @@ package com.github.mangaloid.client.screens.main
 
 import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.AppConstants
-import com.github.mangaloid.client.core.AsyncData
-import com.github.mangaloid.client.core.ModularResult
+import com.github.mangaloid.client.core.data_structure.AsyncData
+import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.ViewModelWithState
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.di.DependenciesGraph

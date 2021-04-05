@@ -212,3 +212,9 @@ fun View.updateMargins(
   layoutParams.marginStart = newStart
   layoutParams.marginEnd = newEnd
 }
+
+fun <K, V> MutableMap<K, V>.putIfNotExists(key: K, value: V) {
+  if (!containsKey(key)) {
+    put(key, value)
+  }
+}

@@ -1,19 +1,17 @@
 package com.github.mangaloid.client.model.data
 
-import com.github.mangaloid.client.core.AppConstants
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
 import okhttp3.HttpUrl
 
 
 data class Manga(
   val mangaId: MangaId,
   val title: String,
-  val chapters: List<MangaChapter>
+  val chapters: List<MangaChapter>,
+  val coversUrl: HttpUrl
 ) {
 
-  fun coverUrl(coversEndpoint: HttpUrl = AppConstants.coversEndpoint): HttpUrl {
-    return coversEndpoint.newBuilder()
+  fun coverUrl(): HttpUrl {
+    return coversUrl.newBuilder()
       .addEncodedPathSegment("${mangaId.id}.jpg")
       .build()
   }
@@ -42,10 +40,3 @@ data class Manga(
   }
 
 }
-
-@JsonClass(generateAdapter = true)
-data class MangaRemote(
-  @Json(name = "id") val id: Int,
-  @Json(name = "title") val title: String,
-  @Json(name = "chapters") val chapters: List<MangaChapterRemote>,
-)

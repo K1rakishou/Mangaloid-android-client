@@ -10,13 +10,16 @@ import org.joda.time.format.DateTimeFormat
 
 data class MangaChapter(
   val ownerMangaId: MangaId,
+  val prevChapterId: MangaChapterId?,
   val chapterId: MangaChapterId,
+  val nextChapterId: MangaChapterId?,
   val mangaChapterIpfsId: MangaChapterIpfsId,
   val title: String,
   val group: String,
   val date: DateTime,
   val pages: Int,
-  val mangaChapterMeta: MangaChapterMeta
+  val mangaChapterMeta: MangaChapterMeta,
+  val chapterPagesUrl: HttpUrl
 ) {
 
   fun formatDate(): String {
@@ -31,10 +34,7 @@ data class MangaChapter(
     return "Pages: ${pages}"
   }
 
-  fun chapterCoverUrl(
-    pageExtension: String = AppConstants.preferredPageImageExtension,
-    chapterPagesUrl: HttpUrl = AppConstants.chapterPagesEndpoint
-  ): HttpUrl {
+  fun chapterCoverUrl(pageExtension: String = AppConstants.preferredPageImageExtension, ): HttpUrl {
     return chapterPagesUrl.newBuilder()
       .addEncodedPathSegment(mangaChapterIpfsId.cid)
       // TODO(hardcoded): 3/29/2021: For now it's impossible to know page's image extension and
@@ -56,13 +56,3 @@ data class MangaChapter(
   }
 
 }
-
-@JsonClass(generateAdapter = true)
-data class MangaChapterRemote(
-  @Json(name = "no") val no: Int,
-  @Json(name = "cid") val cid: String?,
-  @Json(name = "title") val title: String,
-  @Json(name = "group") val group: String,
-  @Json(name = "date") val date: String?,
-  @Json(name = "pages") val pages: Int
-)

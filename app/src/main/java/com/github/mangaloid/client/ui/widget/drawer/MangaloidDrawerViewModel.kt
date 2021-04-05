@@ -1,7 +1,7 @@
 package com.github.mangaloid.client.ui.widget.drawer
 
 import androidx.lifecycle.viewModelScope
-import com.github.mangaloid.client.core.AsyncData
+import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.ViewModelWithState
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
 import com.github.mangaloid.client.core.extension.ExtensionId

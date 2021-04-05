@@ -3,7 +3,7 @@ package com.github.mangaloid.client.core.page_loader
 import android.util.LruCache
 import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.core.LimitingConcurrentCoroutineExecutor
-import com.github.mangaloid.client.core.ModularResult
+import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.cache.CacheHandler
 import com.github.mangaloid.client.model.data.MangaPageUrl
 import com.github.mangaloid.client.util.BackgroundUtils

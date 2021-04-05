@@ -1,4 +1,4 @@
-package com.github.mangaloid.client.core
+package com.github.mangaloid.client.core.data_structure
 
 sealed class AsyncData<T> {
   class NotInitialized<T> : AsyncData<T>()
