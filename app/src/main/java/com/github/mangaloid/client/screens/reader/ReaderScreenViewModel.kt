@@ -5,6 +5,7 @@ import com.github.mangaloid.client.core.ViewModelWithState
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
+import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.model.repository.MangaRepository
@@ -16,6 +17,7 @@ class ReaderScreenViewModel(
   private val extensionId: ExtensionId,
   private val mangaId: MangaId,
   private val initialMangaChapterId: MangaChapterId,
+  private val appSettings: AppSettings = DependenciesGraph.appSettings,
   private val mangaRepository: MangaRepository = DependenciesGraph.mangaRepository,
   private val mangaPageLoader: MangaPageLoader = DependenciesGraph.mangaPageLoader
 ) : ViewModelWithState<ReaderScreenViewModel.ReaderScreenState>(ReaderScreenState()) {
@@ -51,6 +53,7 @@ class ReaderScreenViewModel(
 
     updateState {
       val viewableMangaChapter = ViewableMangaChapter.fromMangaChapter(
+        readerSwipeDirection = appSettings.readerSwipeDirection.get(),
         prevChapterId = mangaChapter.prevChapterId,
         currentChapter = mangaChapter,
         nextChapterId = mangaChapter.nextChapterId

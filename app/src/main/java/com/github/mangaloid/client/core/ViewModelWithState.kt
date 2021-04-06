@@ -12,7 +12,7 @@ abstract class ViewModelWithState<State>(
   val stateViewable: StateFlow<State>
     get() = _stateActual
 
-  protected fun updateState(stateUpdater: State.() -> State) {
+  protected suspend fun updateState(stateUpdater: suspend State.() -> State) {
     _stateActual.value = stateUpdater(_stateActual.value)
   }
 

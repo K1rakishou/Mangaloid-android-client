@@ -8,6 +8,7 @@ import com.github.mangaloid.client.core.extension.MangaExtensionManager
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.model.repository.MangaRepository
 import com.github.mangaloid.client.core.extension.mangaloid.MangaloidRemoteSource
+import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.model.cache.MangaCache
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -37,6 +38,8 @@ object DependenciesGraph {
 
   private val cacheHandlerSynchronizer by lazy { CacheHandlerSynchronizer() }
   private val mangaCache by lazy { MangaCache() }
+
+  val appSettings by lazy { AppSettings(appContext) }
 
   val mangaRepository by lazy {
     MangaRepository(

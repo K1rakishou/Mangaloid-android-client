@@ -20,6 +20,7 @@ import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawerViewModel
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
+import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
 
@@ -41,7 +42,7 @@ fun MainScreen(
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
   val searchInfo = toolbarState.searchInfo
 
-  if (searchInfo != null && searchInfo.searchType == MangaloidToolbarViewModel.SearchType.MangaSearch) {
+  if (searchInfo != null && searchInfo.toolbarSearchType == ToolbarSearchType.MangaSearch) {
     MainScreenSearch(searchInfo.query)
     return
   }

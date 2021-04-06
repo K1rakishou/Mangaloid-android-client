@@ -1,4 +1,4 @@
-package com.github.mangaloid.client.core
+package com.github.mangaloid.client.core.coroutine_executor
 
 import com.github.mangaloid.client.util.Logger
 import kotlinx.coroutines.*

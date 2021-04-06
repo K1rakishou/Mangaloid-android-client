@@ -36,7 +36,7 @@ class MangaloidDrawerViewModel(
   }
 
   fun selectExtension(extensionId: ExtensionId) {
-    updateState { copy(selectedExtensionId = extensionId) }
+    viewModelScope.launch { updateState { copy(selectedExtensionId = extensionId) } }
   }
 
   data class MangaloidDrawerState(

@@ -18,6 +18,8 @@ import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
+import com.github.mangaloid.client.ui.widget.toolbar.ToolbarButtonId
+import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
 import com.github.mangaloid.client.util.StringSpanUtils
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
@@ -43,7 +45,7 @@ fun ChaptersScreen(
   val currentManga = chaptersScreenState.currentManga
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
   val searchQuery = toolbarState.searchInfo?.let { searchInfo ->
-    if (searchInfo.searchType != MangaloidToolbarViewModel.SearchType.MangaChapterSearch) {
+    if (searchInfo.toolbarSearchType != ToolbarSearchType.MangaChapterSearch) {
       return@let null
     }
 
@@ -104,7 +106,7 @@ private fun ChaptersScreenEmptyContent(
 ) {
   toolbarViewModel.updateToolbar {
     titleWithBackButton(
-      backButtonId = MangaloidToolbarViewModel.ToolbarButtonId.BackArrow,
+      backButtonId = ToolbarButtonId.BackArrow,
       title = "No manga chapters found"
     )
   }

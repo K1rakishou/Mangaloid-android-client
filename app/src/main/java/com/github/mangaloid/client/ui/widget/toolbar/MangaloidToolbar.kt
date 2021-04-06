@@ -59,33 +59,33 @@ fun MangaloidToolbar(
       toolbarState = toolbarState,
       onToolbarButtonClicked = { toolbarButtonId ->
         when (toolbarButtonId) {
-          MangaloidToolbarViewModel.ToolbarButtonId.NoId -> {
+          ToolbarButtonId.NoId -> {
             // no-op
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.BackArrow -> {
+          ToolbarButtonId.BackArrow -> {
             navController.popBackStack()
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.MangaSearch -> {
+          ToolbarButtonId.MangaSearch -> {
             toolbarViewModel.pushToolbarState()
             toolbarViewModel.updateToolbarDoNotTouchStack {
-              searchToolbar(MangaloidToolbarViewModel.SearchType.MangaSearch)
+              searchToolbar(ToolbarSearchType.MangaSearch)
             }
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.MangaChapterSearch -> {
+          ToolbarButtonId.MangaChapterSearch -> {
             toolbarViewModel.pushToolbarState()
             toolbarViewModel.updateToolbarDoNotTouchStack {
-              searchToolbar(MangaloidToolbarViewModel.SearchType.MangaChapterSearch)
+              searchToolbar(ToolbarSearchType.MangaChapterSearch)
             }
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.CloseSearch -> {
+          ToolbarButtonId.CloseSearch -> {
             toolbarViewModel.popToolbarState()
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.ClearSearch -> {
+          ToolbarButtonId.ClearSearch -> {
             toolbarViewModel.updateToolbarDoNotTouchStack {
               copy(searchInfo = searchInfo?.copy(query = ""))
             }
           }
-          MangaloidToolbarViewModel.ToolbarButtonId.DrawerMenu -> {
+          ToolbarButtonId.DrawerMenu -> {
             drawerViewModel.openDrawer()
           }
         }
@@ -97,8 +97,8 @@ fun MangaloidToolbar(
 @Composable
 private fun ToolbarContent(
   toolbarViewModel: MangaloidToolbarViewModel,
-  toolbarState: MangaloidToolbarViewModel.ToolbarState,
-  onToolbarButtonClicked: (MangaloidToolbarViewModel.ToolbarButtonId) -> Unit
+  toolbarState: ToolbarState,
+  onToolbarButtonClicked: (ToolbarButtonId) -> Unit
 ) {
   Row(
     modifier = Modifier
@@ -109,8 +109,8 @@ private fun ToolbarContent(
     PositionToolbarButton(toolbarState.leftButton, onToolbarButtonClicked)
 
     when (toolbarState.toolbarType) {
-      MangaloidToolbarViewModel.ToolbarType.MainToolbar,
-      MangaloidToolbarViewModel.ToolbarType.ChaptersToolbar -> {
+      ToolbarType.MainToolbar,
+      ToolbarType.ChaptersToolbar -> {
         Column(
           modifier = Modifier
             .fillMaxHeight()
@@ -119,7 +119,7 @@ private fun ToolbarContent(
           ToolbarSimpleTitleMiddlePart(toolbarState)
         }
       }
-      MangaloidToolbarViewModel.ToolbarType.SearchToolbar -> {
+      ToolbarType.SearchToolbar -> {
         Row(
           modifier = Modifier
             .fillMaxHeight()
@@ -141,7 +141,7 @@ private fun ToolbarContent(
 @Composable
 fun RowScope.ToolbarSearchMiddlePart(
   toolbarViewModel: MangaloidToolbarViewModel,
-  toolbarState: MangaloidToolbarViewModel.ToolbarState
+  toolbarState: ToolbarState
 ) {
   var textState by remember { mutableStateOf(TextFieldValue(toolbarState.searchInfo?.query ?: "")) }
   val textStyle = remember { TextStyle(color = Color.White, fontSize = 18.sp) }
@@ -176,7 +176,7 @@ fun RowScope.ToolbarSearchMiddlePart(
 }
 
 @Composable
-fun ColumnScope.ToolbarSimpleTitleMiddlePart(toolbarState: MangaloidToolbarViewModel.ToolbarState) {
+fun ToolbarSimpleTitleMiddlePart(toolbarState: ToolbarState) {
   toolbarState.title?.let { toolbarTitle ->
     val textSize = if (toolbarState.subtitle.isNullOrEmpty()) {
       26.sp
@@ -210,19 +210,19 @@ fun ColumnScope.ToolbarSimpleTitleMiddlePart(toolbarState: MangaloidToolbarViewM
 
 @Composable
 fun RowScope.PositionToolbarButton(
-  toolbarButton: MangaloidToolbarViewModel.ToolbarButton?,
-  onToolbarButtonClicked: (MangaloidToolbarViewModel.ToolbarButtonId) -> Unit
+  toolbarButton: ToolbarButton?,
+  onToolbarButtonClicked: (ToolbarButtonId) -> Unit
 ) {
   if (toolbarButton == null) {
     return
   }
 
   return when (toolbarButton) {
-    is MangaloidToolbarViewModel.ToolbarButton.BackArrow,
-    is MangaloidToolbarViewModel.ToolbarButton.HamburgMenu,
-    is MangaloidToolbarViewModel.ToolbarButton.MangaSearchButton,
-    is MangaloidToolbarViewModel.ToolbarButton.MangaChapterSearchButton,
-    is MangaloidToolbarViewModel.ToolbarButton.ClearSearchButton -> {
+    is ToolbarButton.BackArrow,
+    is ToolbarButton.HamburgMenu,
+    is ToolbarButton.MangaSearchButton,
+    is ToolbarButton.MangaChapterSearchButton,
+    is ToolbarButton.ClearSearchButton -> {
       Spacer(modifier = Modifier.width(4.dp))
 
       Image(
