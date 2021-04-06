@@ -3,6 +3,7 @@ package com.github.mangaloid.client.core.settings
 import android.content.Context
 import com.github.mangaloid.client.core.settings.enums.SwipeDirection
 import com.github.mangaloid.client.core.settings.impl.EnumSetting
+import com.github.mangaloid.client.core.settings.impl.IntSetting
 
 
 class AppSettings(
@@ -17,6 +18,14 @@ class AppSettings(
       key = "reader_swipe_direction",
       default = SwipeDirection.RightToLeft,
       enumClass = SwipeDirection::class.java
+    )
+  }
+
+  override val pagesToPreloadCount: IntSetting by lazy {
+    IntSetting(
+      sharedPreferences = sharedPreferences,
+      key = "pages_to_preload_count",
+      default = 5
     )
   }
 

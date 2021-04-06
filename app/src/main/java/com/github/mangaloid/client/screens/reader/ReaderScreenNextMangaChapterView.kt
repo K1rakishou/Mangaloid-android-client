@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.appcompat.widget.AppCompatButton
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.helper.SimpleTapListener
+import com.github.mangaloid.client.model.data.ViewableMangaChapter
 import com.github.mangaloid.client.model.data.ViewablePage
 import com.github.mangaloid.client.util.setVisibilityFast
 
@@ -38,7 +39,7 @@ class ReaderScreenNextMangaChapterView(
     return this
   }
 
-  override fun bind(viewablePage: ViewablePage.NextChapterPage) {
+  override fun bind(viewableMangaChapter: ViewableMangaChapter, viewablePage: ViewablePage.NextChapterPage) {
     if (viewablePage.mangaChapterId == null) {
       nextChapterText.text = context.getString(R.string.no_next_chapter)
       loadNextChapterButton.setVisibilityFast(View.GONE)
@@ -49,7 +50,7 @@ class ReaderScreenNextMangaChapterView(
 
     loadNextChapterButton.setVisibilityFast(View.VISIBLE)
     loadNextChapterButton.setOnClickListener {
-      readerScreenViewModel.changeMangaChapter(viewablePage.mangaChapterId)
+      readerScreenViewModel.switchMangaChapter(viewablePage.mangaChapterId)
     }
   }
 

@@ -1,9 +1,12 @@
 package com.github.mangaloid.client.model.data
 
+import com.github.mangaloid.client.core.extension.ExtensionId
+import com.github.mangaloid.client.core.page_loader.DownloadableMangaPageUrl
 import com.github.mangaloid.client.core.settings.enums.SwipeDirection
 import com.github.mangaloid.client.util.mutableListWithCap
 
 data class ViewableMangaChapter(
+  val extensionId: ExtensionId,
   val mangaId: MangaId,
   val mangaChapterId: MangaChapterId,
   val chapterPages: List<ViewablePage>,
@@ -50,11 +53,13 @@ data class ViewableMangaChapter(
 
     fun fromMangaChapter(
       readerSwipeDirection: SwipeDirection,
+      extensionId: ExtensionId,
       prevChapterId: MangaChapterId?,
       currentChapter: MangaChapter,
       nextChapterId: MangaChapterId?
     ): ViewableMangaChapter {
       return ViewableMangaChapter(
+        extensionId = extensionId,
         mangaId = currentChapter.ownerMangaId,
         mangaChapterId = currentChapter.chapterId,
         chapterPages = createViewableChapterPages(
@@ -100,7 +105,7 @@ data class ViewableMangaChapter(
 
 sealed class ViewablePage {
   data class PrevChapterPage(val mangaChapterId: MangaChapterId?) : ViewablePage()
-  data class MangaPage(val pageIndex: Int, val mangaPageUrl: MangaPageUrl) : ViewablePage()
+  data class MangaPage(val pageIndex: Int, val downloadableMangaPageUrl: DownloadableMangaPageUrl) : ViewablePage()
   data class NextChapterPage(val mangaChapterId: MangaChapterId?) : ViewablePage()
 }
 

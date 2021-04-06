@@ -38,6 +38,7 @@ class MangaloidExtension(
 
   override suspend fun loadCatalogManga(): ModularResult<List<Manga>> {
     return mangaloidRemoteSource.loadManga(
+      extensionId = mangaExtensionId,
       dbEndpoint = dbEndpoint,
       chapterPagesUrl = chapterPagesUrl,
       coversUrl = coversUrl

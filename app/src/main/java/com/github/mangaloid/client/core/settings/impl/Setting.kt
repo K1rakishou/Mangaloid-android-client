@@ -5,6 +5,7 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import java.util.concurrent.Executors
@@ -23,6 +24,14 @@ abstract class Setting<T : Any?>(
         actual = MutableStateFlow(load() ?: default)
       }
     }
+  }
+
+  fun getBlocking(): T {
+    if (actual != null) {
+      return actual!!.value
+    }
+
+    return runBlocking(dispatcher) { get() }
   }
 
   open suspend fun get(): T {

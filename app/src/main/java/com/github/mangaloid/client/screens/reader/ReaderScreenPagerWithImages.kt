@@ -45,9 +45,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
     closeReaderButton = findViewById(R.id.close_reader_button)
     readerButtonContainer = findViewById(R.id.reader_buttons_container)
 
-    // TODO: 4/1/2021: This is probably not the best idea but for now it should be enough. In the
-    //  future MangaPageLoader should do the page preloading.
-    viewPager.offscreenPageLimit = AppConstants.preloadImagesCount
+    viewPager.offscreenPageLimit = OFFSCREEN_PAGES_COUNT
 
     viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
       override fun onPageSelected(position: Int) {
@@ -133,7 +131,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
           onTap = { onViewablePageTapped() }
         )
 
-        readerScreenPrevMangaChapterView.bind(viewablePage)
+        readerScreenPrevMangaChapterView.bind(viewableMangaChapter, viewablePage)
         return readerScreenPrevMangaChapterView as ReaderScreenMangaPageViewContract<ViewablePage>
       }
       is ViewablePage.MangaPage -> {
@@ -143,7 +141,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
           onTap = { onViewablePageTapped() }
         )
 
-        readerScreenMangaPageView.bind(viewablePage)
+        readerScreenMangaPageView.bind(viewableMangaChapter, viewablePage)
         return readerScreenMangaPageView as ReaderScreenMangaPageViewContract<ViewablePage>
       }
       is ViewablePage.NextChapterPage -> {
@@ -153,7 +151,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
           onTap = { onViewablePageTapped() }
         )
 
-        readerScreenNextMangaChapterView.bind(viewablePage)
+        readerScreenNextMangaChapterView.bind(viewableMangaChapter, viewablePage)
         return readerScreenNextMangaChapterView as ReaderScreenMangaPageViewContract<ViewablePage>
       }
     }
@@ -208,6 +206,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   }
 
   companion object {
+    private const val OFFSCREEN_PAGES_COUNT = 2
     private val CLOSE_BUTTON_RIGHT_PADDING = 16.dp.value.toInt()
   }
 

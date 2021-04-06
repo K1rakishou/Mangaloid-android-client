@@ -1,6 +1,7 @@
 package com.github.mangaloid.client.core.extension.mangaloid
 
 import com.github.mangaloid.client.core.data_structure.ModularResult
+import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.util.suspendConvertIntoJsonObject
 import com.squareup.moshi.Moshi
@@ -22,6 +23,7 @@ class MangaloidRemoteSource(
   }
 
   suspend fun loadManga(
+    extensionId: ExtensionId,
     dbEndpoint: HttpUrl,
     chapterPagesUrl: HttpUrl,
     coversUrl: HttpUrl
@@ -55,6 +57,7 @@ class MangaloidRemoteSource(
           val nextChapterId = mangaRemote.chapters.getOrNull(index + 1)?.no?.let { no -> MangaChapterId(no) }
 
           return@mapIndexedNotNull MangaChapter(
+            extensionId = extensionId,
             ownerMangaId = mangaId,
             prevChapterId = prevChapterId,
             chapterId = chapterId,

@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.ViewModelWithState
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.ExtensionId
+import com.github.mangaloid.client.core.page_loader.DownloadableMangaPageUrl
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.di.DependenciesGraph
@@ -54,6 +55,7 @@ class ReaderScreenViewModel(
     updateState {
       val viewableMangaChapter = ViewableMangaChapter.fromMangaChapter(
         readerSwipeDirection = appSettings.readerSwipeDirection.get(),
+        extensionId = mangaChapter.extensionId,
         prevChapterId = mangaChapter.prevChapterId,
         currentChapter = mangaChapter,
         nextChapterId = mangaChapter.nextChapterId
@@ -63,24 +65,81 @@ class ReaderScreenViewModel(
     }
   }
 
-  fun loadImage(mangaPageUrl: MangaPageUrl): SharedFlow<MangaPageLoader.MangaPageLoadingStatus> {
-    Logger.d(TAG, "loadImage($mangaPageUrl)")
-    return mangaPageLoader.loadMangaPage(mangaPageUrl)
+  suspend fun loadImage(
+    viewableMangaChapter: ViewableMangaChapter,
+    downloadableMangaPageUrl: DownloadableMangaPageUrl
+  ): SharedFlow<MangaPageLoader.MangaPageLoadingStatus> {
+    Logger.d(TAG, "loadImage($downloadableMangaPageUrl)")
+    val mangaPageLoadStatusFlow = mangaPageLoader.loadMangaPage(downloadableMangaPageUrl)
+
+    val pagesToPreload = formatUrlsOfPagesToPreload(
+      mangaRepository = mangaRepository,
+      viewableMangaChapter = viewableMangaChapter,
+      downloadableMangaPageUrl = downloadableMangaPageUrl,
+      preloadCount = appSettings.pagesToPreloadCount.get()
+    )
+    mangaPageLoader.preloadNextPages(pagesToPreload)
+
+    return mangaPageLoadStatusFlow
   }
 
-  fun retryLoadMangaPage(mangaPageUrl: MangaPageUrl) {
-    Logger.d(TAG, "retryLoadMangaPage($mangaPageUrl)")
-    mangaPageLoader.retryLoadMangaPage(mangaPageUrl)
+  fun retryLoadMangaPage(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
+    Logger.d(TAG, "retryLoadMangaPage(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+    mangaPageLoader.retryLoadMangaPage(downloadableMangaPageUrl)
   }
 
-  fun cancelLoading(mangaPageUrl: MangaPageUrl) {
-    Logger.d(TAG, "cancelLoading($mangaPageUrl)")
-    mangaPageLoader.cancelMangaPageLoading(mangaPageUrl)
+  fun cancelLoading(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
+    Logger.d(TAG, "cancelLoading(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+    mangaPageLoader.cancelMangaPageLoading(downloadableMangaPageUrl)
   }
 
-  fun changeMangaChapter(mangaChapterId: MangaChapterId) {
-    Logger.d(TAG, "showMangaChapter($mangaChapterId)")
-    viewModelScope.launch { getMangaChapterInternal(mangaChapterId = mangaChapterId) }
+  fun switchMangaChapter(newMangaChapterId: MangaChapterId) {
+    Logger.d(TAG, "switchMangaChapter($newMangaChapterId)")
+    viewModelScope.launch { getMangaChapterInternal(mangaChapterId = newMangaChapterId) }
+  }
+
+  private suspend fun formatUrlsOfPagesToPreload(
+    mangaRepository: MangaRepository,
+    viewableMangaChapter: ViewableMangaChapter,
+    downloadableMangaPageUrl: DownloadableMangaPageUrl,
+    preloadCount: Int
+  ): List<DownloadableMangaPageUrl> {
+    val resultPages = mutableListOf<DownloadableMangaPageUrl>()
+    val currentChapter = mangaRepository.getMangaChapterByIdFromCache(
+      extensionId = viewableMangaChapter.extensionId,
+      mangaId = viewableMangaChapter.mangaId,
+      mangaChapterId = viewableMangaChapter.mangaChapterId
+    )
+    val nextChapterId = downloadableMangaPageUrl.nextChapterId
+
+    if (currentChapter == null) {
+      return resultPages
+    }
+
+    resultPages += downloadableMangaPageUrl.sliceNextPages(preloadCount)
+      .map { pageIndex -> currentChapter.mangaChapterPageUrl(pageIndex + 1) }
+
+    if (resultPages.size == preloadCount || nextChapterId == null) {
+      return resultPages
+    }
+
+    val nextChapter = mangaRepository.getMangaChapterByIdFromCache(
+      extensionId = viewableMangaChapter.extensionId,
+      mangaId = viewableMangaChapter.mangaId,
+      mangaChapterId = nextChapterId
+    )
+
+    checkNotNull(nextChapter) {
+      "Next chapter is null for some unknown reason. " +
+        "viewableMangaChapter=$viewableMangaChapter, nextChapterId=$nextChapterId"
+    }
+
+    val preloadFromNextChapterCount = preloadCount - resultPages.size
+
+    resultPages += (0 until preloadFromNextChapterCount)
+      .map { pageIndex -> nextChapter.mangaChapterPageUrl(pageIndex + 1) }
+
+    return resultPages
   }
 
   data class ReaderScreenState(

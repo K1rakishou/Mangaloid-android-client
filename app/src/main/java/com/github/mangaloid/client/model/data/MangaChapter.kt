@@ -1,14 +1,15 @@
 package com.github.mangaloid.client.model.data
 
 import com.github.mangaloid.client.core.AppConstants
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
+import com.github.mangaloid.client.core.extension.ExtensionId
+import com.github.mangaloid.client.core.page_loader.DownloadableMangaPageUrl
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
 data class MangaChapter(
+  val extensionId: ExtensionId,
   val ownerMangaId: MangaId,
   val prevChapterId: MangaChapterId?,
   val chapterId: MangaChapterId,
@@ -34,7 +35,7 @@ data class MangaChapter(
     return "Pages: ${pages}"
   }
 
-  fun chapterCoverUrl(pageExtension: String = AppConstants.preferredPageImageExtension, ): HttpUrl {
+  fun chapterCoverUrl(pageExtension: String = AppConstants.preferredPageImageExtension): HttpUrl {
     return chapterPagesUrl.newBuilder()
       .addEncodedPathSegment(mangaChapterIpfsId.cid)
       // TODO(hardcoded): 3/29/2021: For now it's impossible to know page's image extension and
@@ -46,9 +47,20 @@ data class MangaChapter(
   fun mangaChapterPageUrl(
     mangaPage: Int,
     pageExtension: String = AppConstants.preferredPageImageExtension
-  ): MangaPageUrl {
+  ): DownloadableMangaPageUrl {
+    // mangaPage starts from 1, not 0 because that's how pages are enumerated on the backend
     val url = "https://ipfs.io/ipfs/${mangaChapterIpfsId.cid}/${mangaPage}.$pageExtension".toHttpUrl()
-    return MangaPageUrl(url)
+    val actualPageIndex = mangaPage - 1
+
+    return DownloadableMangaPageUrl(
+      extensionId = extensionId,
+      mangaId = ownerMangaId,
+      chapterId = chapterId,
+      url = url,
+      currentPage = actualPageIndex,
+      totalPages = pages,
+      nextChapterId = nextChapterId
+    )
   }
 
   companion object {

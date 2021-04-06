@@ -50,8 +50,8 @@ object DependenciesGraph {
 
   val mangaPageLoader by lazy {
     MangaPageLoader(
-      preloadImagesCount = AppConstants.preloadImagesCount,
       appScope = appCoroutineScope,
+      appSettings = appSettings,
       cacheHandler = cacheHandler,
       okHttpClient = okHttpClient
     )

@@ -14,6 +14,7 @@ import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.MangaloidCoroutineScope
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.helper.SimpleTapListener
+import com.github.mangaloid.client.model.data.ViewableMangaChapter
 import com.github.mangaloid.client.model.data.ViewablePage
 import com.github.mangaloid.client.ui.widget.LoadingBar
 import com.github.mangaloid.client.util.AndroidUtils
@@ -30,6 +31,7 @@ class ReaderScreenMangaPageView(
   private val readerScreenViewModel: ReaderScreenViewModel,
   private val onTap: () -> Unit
 ) : FrameLayout(context), ReaderScreenMangaPageViewContract<ViewablePage.MangaPage> {
+  private var viewableMangaChapter: ViewableMangaChapter? = null
   private var viewableMangaPage: ViewablePage.MangaPage? = null
 
   private val coroutineScope = MangaloidCoroutineScope()
@@ -61,20 +63,31 @@ class ReaderScreenMangaPageView(
     return this
   }
 
-  override fun bind(viewablePage: ViewablePage.MangaPage) {
+  override fun bind(viewableMangaChapter: ViewableMangaChapter, viewablePage: ViewablePage.MangaPage) {
+    this.viewableMangaChapter = viewableMangaChapter
     this.viewableMangaPage = viewablePage
-    Logger.d(TAG, "bindMangaPage(${viewableMangaPage!!.mangaPageUrl.url})")
+
+    Logger.d(TAG, "bindMangaPage(${viewableMangaPage!!.downloadableMangaPageUrl.url})")
 
     coroutineScope.launch {
-      readerScreenViewModel.loadImage(viewableMangaPage!!.mangaPageUrl)
+      readerScreenViewModel.loadImage(
+        viewableMangaChapter = viewableMangaChapter,
+        downloadableMangaPageUrl = viewableMangaPage!!.downloadableMangaPageUrl
+      )
         .collect { mangaPageLoadingStatus ->
+          val debugMangaPageId =
+            mangaPageLoadingStatus.downloadableMangaPageUrl.debugDownloadableMangaPageId()
+
           when (mangaPageLoadingStatus) {
-            MangaPageLoader.MangaPageLoadingStatus.Start -> {
+            is MangaPageLoader.MangaPageLoadingStatus.Start -> {
               loadingBar.setVisibilityFast(VISIBLE)
               pageLoadingErrorViewContainer.setVisibilityFast(GONE)
-              Logger.d(TAG, "MangaPageLoader.MangaPageLoadingStatus.Start")
+
+              Logger.d(TAG, "MangaPageLoader.MangaPageLoadingStatus.Start ($debugMangaPageId)")
             }
             is MangaPageLoader.MangaPageLoadingStatus.Loading -> {
+              pageLoadingErrorViewContainer.setVisibilityFast(GONE)
+
               if (mangaPageLoadingStatus.progress != null) {
                 loadingBar.setVisibilityFast(VISIBLE)
                 loadingBar.setProgress(mangaPageLoadingStatus.progress)
@@ -83,20 +96,20 @@ class ReaderScreenMangaPageView(
               }
             }
             is MangaPageLoader.MangaPageLoadingStatus.Success -> {
-              Logger.d(TAG, "MangaPageLoader.MangaPageLoadingStatus.Success, " +
+              Logger.d(TAG, "MangaPageLoader.MangaPageLoadingStatus.Success ($debugMangaPageId), " +
                 "file=${mangaPageLoadingStatus.mangaPageFile.absolutePath}")
 
               onMangaPageLoadSuccess(mangaPageLoadingStatus)
               onMangaPageLoadEnd()
             }
-            MangaPageLoader.MangaPageLoadingStatus.Canceled -> {
-              Logger.e(TAG, "MangaPageLoader.MangaPageLoadingStatus.Canceled")
+            is MangaPageLoader.MangaPageLoadingStatus.Canceled -> {
+              Logger.e(TAG, "MangaPageLoader.MangaPageLoadingStatus.Canceled ($debugMangaPageId)")
               onMangaPageLoadError(CancellationException())
               onMangaPageLoadEnd()
             }
             is MangaPageLoader.MangaPageLoadingStatus.Error -> {
               val errorMessage = mangaPageLoadingStatus.throwable.errorMessageOrClassName()
-              Logger.e(TAG, "MangaPageLoader.MangaPageLoadingStatus.Error ${errorMessage}")
+              Logger.e(TAG, "MangaPageLoader.MangaPageLoadingStatus.Error ($debugMangaPageId) errorMessage=${errorMessage}")
               onMangaPageLoadError(mangaPageLoadingStatus.throwable)
               onMangaPageLoadEnd()
             }
@@ -106,10 +119,13 @@ class ReaderScreenMangaPageView(
   }
 
   override fun unbind() {
-    Logger.d(TAG, "unbindMangaPage(${viewableMangaPage?.mangaPageUrl?.url})")
+    Logger.d(TAG, "unbindMangaPage(${viewableMangaPage?.downloadableMangaPageUrl?.url})")
 
-    viewableMangaPage?.mangaPageUrl?.let { readerScreenViewModel.cancelLoading(it) }
+    viewableMangaPage?.downloadableMangaPageUrl?.let { readerScreenViewModel.cancelLoading(it) }
     coroutineScope.cancelChildren()
+
+    this.viewableMangaChapter = null
+    this.viewableMangaPage = null
   }
 
   private fun onMangaPageLoadError(error: Throwable) {
@@ -119,7 +135,10 @@ class ReaderScreenMangaPageView(
     val pageLoadingErrorView = PageLoadingErrorView(
       context = context,
       error = error,
-      onRetryClicked = { viewableMangaPage?.mangaPageUrl?.let { mpUrl -> readerScreenViewModel.retryLoadMangaPage(mpUrl) } }
+      onRetryClicked = {
+        viewableMangaPage?.downloadableMangaPageUrl
+          ?.let { mpUrl -> readerScreenViewModel.retryLoadMangaPage(mpUrl) }
+      }
     )
 
     pageLoadingErrorViewContainer.addView(
@@ -133,6 +152,8 @@ class ReaderScreenMangaPageView(
   }
 
   private fun onMangaPageLoadSuccess(mangaPageLoadingStatus: MangaPageLoader.MangaPageLoadingStatus.Success) {
+    pageLoadingErrorViewContainer.setVisibilityFast(GONE)
+
     mangaPageImageViewer.setImage(
       ImageSource
         .uri(mangaPageLoadingStatus.mangaPageFile.toUri())
