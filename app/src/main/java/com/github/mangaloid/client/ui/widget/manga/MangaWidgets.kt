@@ -11,9 +11,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.github.mangaloid.client.R
 import com.github.mangaloid.client.model.data.Manga
+import com.github.mangaloid.client.util.StringSpanUtils
 import com.google.accompanist.coil.CoilImage
 import dev.chrisbanes.accompanist.insets.imePadding
 
@@ -30,7 +35,10 @@ fun MangaProgressWidget() {
 
 @Composable
 fun MangaErrorWidget(error: Throwable) {
-  Box(modifier = Modifier.fillMaxSize().imePadding().padding(8.dp)) {
+  Box(modifier = Modifier
+    .fillMaxSize()
+    .imePadding()
+    .padding(8.dp)) {
     Text(
       text = error.toString(),
       modifier = Modifier.align(Alignment.Center)
@@ -40,7 +48,10 @@ fun MangaErrorWidget(error: Throwable) {
 
 @Composable
 fun MangaFullSizeTextWidget(text: String) {
-  Box(modifier = Modifier.fillMaxSize().imePadding().padding(8.dp)) {
+  Box(modifier = Modifier
+    .fillMaxSize()
+    .imePadding()
+    .padding(8.dp)) {
     Text(
       text = text,
       modifier = Modifier.align(Alignment.Center)
@@ -52,22 +63,25 @@ fun MangaFullSizeTextWidget(text: String) {
 @Composable
 fun MangaItemListWidget(
   mainPageMangaList: List<Manga>,
+  searchQuery: String?,
   onMangaClicked: (Manga) -> Unit
 ) {
   LazyVerticalGrid(
     cells = GridCells.Adaptive(192.dp),
-    modifier = Modifier.fillMaxSize().imePadding()
+    modifier = Modifier
+      .fillMaxSize()
+      .imePadding()
   ) {
     // TODO: 3/29/2021: add search bar
 
     items(mainPageMangaList.size) { index ->
-      MangaItemWidget(mainPageMangaList[index], onMangaClicked)
+      MangaItemWidget(mainPageMangaList[index], searchQuery, onMangaClicked)
     }
   }
 }
 
 @Composable
-fun MangaItemWidget(manga: Manga, onMangaClicked: (Manga) -> Unit) {
+fun MangaItemWidget(manga: Manga, searchQuery: String?, onMangaClicked: (Manga) -> Unit) {
   Row(
     modifier = Modifier
       .fillMaxWidth()
@@ -86,11 +100,23 @@ fun MangaItemWidget(manga: Manga, onMangaClicked: (Manga) -> Unit) {
     Spacer(modifier = Modifier.width(8.dp))
 
     Column(modifier = Modifier.fillMaxWidth()) {
-      Text(text = manga.fullTitlesString, overflow = TextOverflow.Ellipsis)
+      val annotatedTitle = StringSpanUtils.annotateString(manga.fullTitlesString, searchQuery)
+
+      Text(
+        text = annotatedTitle,
+        overflow = TextOverflow.Ellipsis,
+        fontWeight = FontWeight.SemiBold
+      )
 
       Spacer(modifier = Modifier.weight(1f))
 
-      Text(text = "Chapters: ${manga.chaptersCount()}")
+      // We may not know how many chapters a manga has (for example, when searching for manga)
+      if (manga.chaptersCount() > 0) {
+        Text(
+          text = stringResource(R.string.manga_chapters, manga.chaptersCount()),
+          fontSize = 14.sp
+        )
+      }
     }
   }
 }

@@ -26,4 +26,16 @@ There are many variations of passages of Lorem Ipsum available, but the majority
     <string name="next_chapter">Next chapter %1$d</string>
     <string name="load_next_chapter">Load next chapter</string>
     <string name="load_prev_chapter">Load previous chapter</string>
+    <string name="no_manga_chapters_found">No manga chapters found</string>
+    <string name="no_chapters_found_for_manga">No chapters found for manga with id %1$d</string>
+    <string name="manga_library_is_empty">Library is empty</string>
+    <string name="no_manga_found_by_query">No manga found by query \'%1$s\'</string>
+
+    <string name="manga_chapters">Chapters: %1$d</string>
+    <string name="manga_type">Type: %1$s</string>
+    <string name="manga_country">Country: %1$s</string>
+    <string name="manga_artist">Artist: %1$s</string>
+    <string name="manga_author">Author: %1$s</string>
+    <string name="manga_genre">Genre: %1$s</string>
+    <string name="manga_publication_status">Publication status: %1$s</string>
 </resources>

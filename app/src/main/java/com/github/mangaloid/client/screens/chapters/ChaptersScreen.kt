@@ -9,8 +9,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.Manga
@@ -24,6 +30,10 @@ import com.github.mangaloid.client.ui.widget.toolbar.ToolbarButtonId
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
 import com.github.mangaloid.client.util.StringSpanUtils
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
+import com.google.accompanist.coil.CoilImage
+
+private const val HEADER_INDEX = 0
+private const val ADDITIONAL_ITEMS_COUNT = 1 // header
 
 @Composable
 fun ChaptersScreen(
@@ -86,20 +96,54 @@ private fun ChaptersScreenContent(
     toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga) }
   }
 
-  Column(
-    modifier = Modifier
-      .fillMaxSize()
-      .padding(all = 8.dp)
-  ) {
+  Column(modifier = Modifier.fillMaxSize()) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-      items(manga.chaptersCount()) { index ->
-        MangaChapterItem(
-          manga = manga,
-          mangaChapter = manga.getChapterByIndex(index),
-          searchQuery = searchQuery,
-          onMangaChapterClicked = onMangaChapterClicked
-        )
+      items(manga.chaptersCount() + ADDITIONAL_ITEMS_COUNT) { index ->
+        when (index) {
+          HEADER_INDEX -> {
+            ChaptersScreenHeader(manga)
+          }
+          else -> {
+            MangaChapterItem(
+              manga = manga,
+              mangaChapter = manga.getChapterByIndex(index),
+              searchQuery = searchQuery,
+              onMangaChapterClicked = onMangaChapterClicked
+            )
+          }
+        }
       }
+    }
+  }
+}
+
+@Composable
+fun ChaptersScreenHeader(manga: Manga) {
+  Row(
+    modifier = Modifier
+      .fillMaxWidth()
+      .height(240.dp)
+      .padding(4.dp)
+  ) {
+
+    CoilImage(
+      data = manga.coverThumbnailUrl(),
+      contentDescription = null,
+      contentScale = ContentScale.FillBounds,
+      modifier = Modifier.aspectRatio(0.5f)
+    )
+
+    Spacer(modifier = Modifier.width(8.dp))
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+      Text(text = manga.fullTitlesString, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
+      Text(text = stringResource(R.string.manga_type, manga.mangaContentType.type), fontSize = 14.sp)
+      Text(text = stringResource(R.string.manga_country, manga.countryOfOrigin), fontSize = 14.sp)
+      Text(text = stringResource(R.string.manga_artist, manga.fullArtistString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
+      Text(text = stringResource(R.string.manga_author, manga.fullAuthorsString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
+      Text(text = stringResource(R.string.manga_genre, manga.fullGenresString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
+      Text(text = stringResource(R.string.manga_publication_status, manga.publicationStatus), fontSize = 14.sp)
+      Text(text = stringResource(R.string.manga_chapters, manga.chaptersCount()), fontSize = 14.sp)
     }
   }
 }
@@ -109,16 +153,18 @@ private fun ChaptersScreenEmptyContent(
   mangaId: MangaId,
   toolbarViewModel: MangaloidToolbarViewModel
 ) {
+  val toolbarMessage = stringResource(R.string.no_manga_chapters_found)
+
   toolbarViewModel.updateToolbar {
     titleWithBackButton(
       backButtonId = ToolbarButtonId.BackArrow,
-      title = "No manga chapters found"
+      title = toolbarMessage
     )
   }
 
   Box(modifier = Modifier.fillMaxSize()) {
     Text(
-      text = "No chapters found for manga with id ${mangaId.id}",
+      text = stringResource(R.string.no_chapters_found_for_manga, mangaId.id),
       modifier = Modifier.align(Alignment.Center)
     )
   }
@@ -145,6 +191,7 @@ private fun MangaChapterItem(
 
       Text(
         text = annotatedTitle,
+        fontWeight = FontWeight.SemiBold,
         modifier = Modifier
           .fillMaxWidth()
           .wrapContentHeight()
@@ -152,6 +199,7 @@ private fun MangaChapterItem(
 
       Text(
         text = mangaChapter.formatGroup(),
+        fontSize = 14.sp,
         modifier = Modifier
           .fillMaxWidth()
           .wrapContentHeight()
@@ -159,6 +207,7 @@ private fun MangaChapterItem(
 
       Text(
         text = mangaChapter.formatPages(),
+        fontSize = 14.sp,
         modifier = Modifier
           .fillMaxWidth()
           .wrapContentHeight()
@@ -166,6 +215,7 @@ private fun MangaChapterItem(
 
       Text(
         text = mangaChapter.formatDate(),
+        fontSize = 14.sp,
         modifier = Modifier
           .fillMaxWidth()
           .wrapContentHeight()

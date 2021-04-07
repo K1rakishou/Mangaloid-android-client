@@ -3,7 +3,9 @@ package com.github.mangaloid.client.screens.main
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.screens.manga_search.MangaSearchScreen
@@ -60,10 +62,11 @@ fun MainScreen(
     is AsyncData.Data -> {
       val mainPageMangaList = initialLoadState.data
       if (mainPageMangaList.isEmpty()) {
-        MangaFullSizeTextWidget("Library is empty")
+        MangaFullSizeTextWidget(stringResource(R.string.manga_library_is_empty))
       } else {
         MangaItemListWidget(
           mainPageMangaList = mainPageMangaList,
+          searchQuery = searchInfo?.query,
           onMangaClicked = onMangaClicked
         )
       }

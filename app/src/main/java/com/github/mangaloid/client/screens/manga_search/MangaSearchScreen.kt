@@ -3,7 +3,9 @@ package com.github.mangaloid.client.screens.manga_search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.extension.ExtensionId
@@ -19,7 +21,6 @@ fun MangaSearchScreen(extensionId: ExtensionId, searchQuery: String, onMangaClic
   val mangaSearchScreenViewModel = viewModel<MangaSearchScreenViewModel>()
 
   if (searchQuery.length < AppConstants.minSearchQueryLength) {
-    MangaFullSizeTextWidget("Search query is too short (min length is ${AppConstants.minSearchQueryLength})")
     return
   }
 
@@ -37,9 +38,9 @@ fun MangaSearchScreen(extensionId: ExtensionId, searchQuery: String, onMangaClic
     is AsyncData.Data -> {
       val foundManga = asyncData.data
       if (foundManga.isEmpty()) {
-        MangaFullSizeTextWidget("No manga found by query '$searchQuery'")
+        MangaFullSizeTextWidget(stringResource(R.string.no_manga_found_by_query, searchQuery))
       } else {
-        MangaItemListWidget(foundManga, onMangaClicked)
+        MangaItemListWidget(foundManga, searchQuery, onMangaClicked)
       }
     }
   }

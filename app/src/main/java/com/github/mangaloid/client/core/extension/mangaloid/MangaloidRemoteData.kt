@@ -11,7 +11,7 @@ data class MangaloidMangaRemote(
   @Json(name = "artists") val artists: List<String>,
   @Json(name = "authors") val authors: List<String>,
   @Json(name = "genres") val genres: List<String>,
-  @Json(name = "country_of_origin") val countryOfOriginal: String,
+  @Json(name = "country_of_origin") val countryOfOrigin: String,
   @Json(name = "publication_status") val publicationStatus: String,
   @Json(name = "mal_id") val malId: Int,
   @Json(name = "anilist_id") val anilistId: Int,
