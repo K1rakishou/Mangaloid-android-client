@@ -1,6 +1,6 @@
 package com.github.mangaloid.client.core.extension
 
-enum class ExtensionId(val rawId: Int) {
+enum class ExtensionId(val id: Int) {
   Mangaloid(0);
 
   companion object {
@@ -11,7 +11,7 @@ enum class ExtensionId(val rawId: Int) {
         return null
       }
 
-      return values().firstOrNull { extensionId -> extensionId.rawId == rawId }
+      return values().firstOrNull { extensionId -> extensionId.id == rawId }
     }
   }
 }

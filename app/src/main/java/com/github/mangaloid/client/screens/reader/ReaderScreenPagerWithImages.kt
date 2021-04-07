@@ -20,6 +20,9 @@ import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.data.LastViewedPageIndex
 import com.github.mangaloid.client.model.data.ViewableMangaChapter
 import com.github.mangaloid.client.model.data.ViewablePage
+import com.github.mangaloid.client.ui.widget.AsyncDataView
+import com.github.mangaloid.client.util.AndroidUtils
+import com.github.mangaloid.client.util.Logger
 
 class ReaderScreenPagerWithImages @JvmOverloads constructor(
   context: Context,
@@ -28,17 +31,60 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
 ) : ConstraintLayout(context, attributeSet, defAttrStyle) {
   private var readerActivityCallbacks: ReaderActivityCallbacks? = null
 
-  private val viewPager: ViewPager
-  private val pageIndicator: TextView
-  private val rootContainer: ConstraintLayout
-  private val closeReaderButton: FrameLayout
-  private val readerButtonContainer: CardView
+  private val asyncDataView = AsyncDataView(context)
+
+  private lateinit var viewPager: ViewPager
+  private lateinit var pageIndicator: TextView
+  private lateinit var rootContainer: ConstraintLayout
+  private lateinit var closeReaderButton: FrameLayout
+  private lateinit var readerButtonContainer: CardView
 
   private val appSettings = DependenciesGraph.appSettings
   private var currentSwipeDirection: SwipeDirection = SwipeDirection.LeftToRight
 
   init {
-    inflate(context, R.layout.reader_screen_pager_with_images, this)
+    addView(asyncDataView, AndroidUtils.mpMpLayoutParams)
+  }
+
+  fun init(readerActivityCallbacks: ReaderActivityCallbacks) {
+    this.readerActivityCallbacks = readerActivityCallbacks
+  }
+
+  suspend fun onMangaLoadProgress() {
+    asyncDataView.changeState(AsyncDataView.State.Loading)
+    asyncDataView.onTap { onViewablePageTapped() }
+  }
+
+  suspend fun onMangaLoadError(throwable: Throwable) {
+    Logger.e(TAG, "currentMangaChapterResult is error", throwable)
+    asyncDataView.changeState(AsyncDataView.State.Error(throwable))
+    asyncDataView.onTap { onViewablePageTapped() }
+  }
+
+  suspend fun onMangaLoaded(
+    lastViewedPageIndex: LastViewedPageIndex?,
+    viewableMangaChapter: ViewableMangaChapter,
+    readerScreenViewModel: ReaderScreenViewModel
+  ) {
+    asyncDataView.changeState(AsyncDataView.State.Success(R.layout.reader_screen_pager_with_images))
+    asyncDataView.onTap(null)
+
+    onMangaChapterPagesLoaded()
+
+    this.currentSwipeDirection = appSettings.readerSwipeDirection.get()
+    val initialMangaPageIndex = calculateInitialMangaPageIndex(lastViewedPageIndex, viewableMangaChapter)
+
+    updatePageIndicator(initialMangaPageIndex, viewableMangaChapter)
+
+    val viewPagerAdapter = ViewPagerAdapter(viewableMangaChapter) { position, parent ->
+      getViewInternal(position, parent, viewableMangaChapter, readerScreenViewModel)
+    }
+
+    viewPager.adapter = viewPagerAdapter
+    viewPager.currentItem = initialMangaPageIndex
+  }
+
+  private fun onMangaChapterPagesLoaded() {
     viewPager = findViewById(R.id.view_pager)
     pageIndicator = findViewById(R.id.page_indicator)
     rootContainer = findViewById(R.id.root_container)
@@ -71,28 +117,6 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
       }
       return@setOnApplyWindowInsetsListener insets
     }
-  }
-
-  fun init(readerActivityCallbacks: ReaderActivityCallbacks) {
-    this.readerActivityCallbacks = readerActivityCallbacks
-  }
-
-  suspend fun onMangaLoaded(
-    lastViewedPageIndex: LastViewedPageIndex?,
-    viewableMangaChapter: ViewableMangaChapter,
-    readerScreenViewModel: ReaderScreenViewModel
-  ) {
-    this.currentSwipeDirection = appSettings.readerSwipeDirection.get()
-    val initialMangaPageIndex = calculateInitialMangaPageIndex(lastViewedPageIndex, viewableMangaChapter)
-
-    updatePageIndicator(initialMangaPageIndex, viewableMangaChapter)
-
-    val viewPagerAdapter = ViewPagerAdapter(viewableMangaChapter) { position, parent ->
-      getViewInternal(position, parent, viewableMangaChapter, readerScreenViewModel)
-    }
-
-    viewPager.adapter = viewPagerAdapter
-    viewPager.currentItem = initialMangaPageIndex
   }
 
   private fun calculateInitialMangaPageIndex(
@@ -206,6 +230,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   }
 
   companion object {
+    private const val TAG = "ReaderScreenPagerWithImages"
     private const val OFFSCREEN_PAGES_COUNT = 2
     private val CLOSE_BUTTON_RIGHT_PADDING = 16.dp.value.toInt()
   }

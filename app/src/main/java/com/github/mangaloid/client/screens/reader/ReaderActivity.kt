@@ -7,7 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.MangaloidCoroutineScope
-import com.github.mangaloid.client.core.data_structure.ModularResult
+import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
@@ -67,16 +67,18 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
 
     coroutineScope.launch {
       readScreenViewModel.stateViewable.collect { state ->
-        val currentMangaChapterResult = state.currentMangaChapterResult
-          ?: return@collect
-
-        when (currentMangaChapterResult) {
-          is ModularResult.Error -> {
-            Logger.e(TAG, "currentMangaChapterResult is error", currentMangaChapterResult.error)
-            return@collect
+        when (val currentMangaChapterAsync = state.currentMangaChapterAsync) {
+          is AsyncData.NotInitialized -> {
+            // no-op
           }
-          is ModularResult.Value -> {
-            val viewableMangaChapter = currentMangaChapterResult.value
+          is AsyncData.Loading -> {
+            readerViewPager.onMangaLoadProgress()
+          }
+          is AsyncData.Error -> {
+            readerViewPager.onMangaLoadError(currentMangaChapterAsync.throwable)
+          }
+          is AsyncData.Data -> {
+            val viewableMangaChapter = currentMangaChapterAsync.data
 
             readerViewPager.onMangaLoaded(
               lastViewedPageIndex = viewableMangaChapter.mangaChapterMeta.lastViewedPageIndex,
@@ -113,7 +115,7 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
       mangaChapterId: MangaChapterId
     ) {
       val intent = Intent(context, ReaderActivity::class.java)
-      intent.putExtra(ExtensionId.EXTENSION_ID_KEY, extensionId.rawId)
+      intent.putExtra(ExtensionId.EXTENSION_ID_KEY, extensionId.id)
       intent.putExtra(MangaId.MANGA_ID_KEY, mangaId.id)
       intent.putExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, mangaChapterId.id)
 

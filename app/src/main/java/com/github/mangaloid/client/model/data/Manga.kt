@@ -35,6 +35,11 @@ data class Manga(
       return
     }
 
+    newChapters.forEach { newChapter ->
+      check(newChapter.extensionId == extensionId) { "ExtensionIds differ!" }
+      check(newChapter.mangaId == mangaId) { "MangaIds differ!" }
+    }
+
     this.chapters.clear()
     this.chapters.addAll(newChapters)
 
@@ -53,12 +58,26 @@ data class Manga(
   fun getChapterByChapterId(mangaChapterId: MangaChapterId): MangaChapter? {
     return chapters
       .firstOrNull { mangaChapter -> mangaChapter.chapterId == mangaChapterId }
-      ?.copy()
   }
 
   @Synchronized
   fun getChapterByIndex(index: Int): MangaChapter {
-    return chapters.get(index).copy()
+    return chapters.get(index)
+  }
+
+  @Synchronized
+  fun updateMangaChapter(mangaChapter: MangaChapter) {
+    check(extensionId == mangaChapter.extensionId) { "ExtensionIds differ!" }
+    check(mangaId == mangaChapter.mangaId) { "MangaIds differ!" }
+
+    val indexOfChapter = chapters
+      .indexOfFirst { chapter -> chapter.chapterId == mangaChapter.chapterId }
+
+    if (indexOfChapter < 0) {
+      return
+    }
+
+    chapters[indexOfChapter] = mangaChapter
   }
 
   fun needChaptersUpdate(): Boolean {

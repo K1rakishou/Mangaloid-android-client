@@ -88,7 +88,7 @@ fun MainActivityRouterContent(
           toolbarViewModel = toolbarViewModel,
           drawerViewModel = drawerViewModel,
           onMangaClicked = { clickedManga ->
-            navController.navigate("chapters/${clickedManga.extensionId.rawId}/${clickedManga.mangaId.id}")
+            navController.navigate("chapters/${clickedManga.extensionId.id}/${clickedManga.mangaId.id}")
           }
         )
       }

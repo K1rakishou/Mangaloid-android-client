@@ -40,6 +40,36 @@ class MangaRepository(
     }
   }
 
+  suspend fun getMangaChapterById(
+    extensionId: ExtensionId,
+    mangaId: MangaId,
+    mangaChapterId: MangaChapterId
+  ): ModularResult<MangaChapter> {
+    return repoAsync {
+      return@repoAsync ModularResult.Try {
+        var chapterFromCache = mangaCache.getChapter(extensionId, mangaId, mangaChapterId)
+        if (chapterFromCache != null) {
+          if (!chapterFromCache.needChapterPagesUpdate()) {
+            return@Try chapterFromCache
+          }
+
+          return@Try refreshMangaChapterPagesIfNeeded(extensionId, chapterFromCache)
+            .unwrap()
+        }
+
+        getMangaByMangaId(extensionId, mangaId)
+          .unwrap()
+
+        chapterFromCache = mangaCache.getChapter(extensionId, mangaId, mangaChapterId)
+        if (chapterFromCache == null) {
+          throw MangaChapterNotFound(extensionId, mangaId, mangaChapterId)
+        }
+
+        return@Try chapterFromCache
+      }
+    }
+  }
+
   suspend fun getMangaByMangaId(extensionId: ExtensionId, mangaId: MangaId): ModularResult<Manga?> {
     return repoAsync {
       val fromCache = mangaCache.getManga(extensionId, mangaId)
@@ -48,7 +78,7 @@ class MangaRepository(
       }
 
       val mangaLoadedFromServerResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
-        .getMangaByMangaId(mangaId)
+        .getManga(mangaId)
 
       if (mangaLoadedFromServerResult is ModularResult.Error) {
         return@repoAsync ModularResult.error(mangaLoadedFromServerResult.error)
@@ -70,7 +100,7 @@ class MangaRepository(
       }
 
       val chaptersResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
-        .getMangaChaptersByMangaId(manga.mangaId)
+        .getMangaChapters(manga.mangaId)
 
       if (chaptersResult is ModularResult.Error) {
         if (manga.hasChapters()) {
@@ -83,35 +113,54 @@ class MangaRepository(
 
       val mangaChapters = (chaptersResult as ModularResult.Value).value
       manga.replaceChapters(mangaChapters)
+      mangaCache.replaceMangaChapters(extensionId, manga.mangaId, mangaChapters)
 
       return@repoAsync ModularResult.value(manga)
     }
   }
 
-  suspend fun getMangaChapterByIdFromCache(
+  suspend fun refreshMangaChapterPagesIfNeeded(
     extensionId: ExtensionId,
-    mangaId: MangaId,
-    mangaChapterId: MangaChapterId
-  ): MangaChapter? {
+    mangaChapter: MangaChapter
+  ): ModularResult<MangaChapter> {
     return repoAsync {
-      return@repoAsync mangaCache.getChapter(extensionId, mangaId, mangaChapterId)
+      if (!mangaChapter.needChapterPagesUpdate()) {
+        return@repoAsync ModularResult.value(mangaChapter)
+      }
+
+      val mangaChapterPagesResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
+        .getMangaChapterPages(mangaChapter)
+
+      if (mangaChapterPagesResult is ModularResult.Error) {
+        return@repoAsync ModularResult.error(mangaChapterPagesResult.error)
+      }
+
+      val mangaChapterPages = (mangaChapterPagesResult as ModularResult.Value).value
+      if (mangaChapterPages.isEmpty()) {
+        return@repoAsync ModularResult.value(mangaChapter)
+      }
+
+      mangaChapter.replaceChapterPages(mangaChapterPages)
+      mangaCache.updateMangaChapter(extensionId, mangaChapter)
+
+      return@repoAsync ModularResult.value(mangaChapter)
     }
   }
 
   class MangaNotFound(
     extensionId: ExtensionId,
     mangaId: MangaId
-  ) : Exception("Manga not found. (extensionId=${extensionId.rawId}, mangaId=${mangaId.id})")
+  ) : Exception("Manga not found. (extensionId=${extensionId.id}, mangaId=${mangaId.id})")
 
   class MangaHasNoChapters(
     extensionId: ExtensionId,
     mangaId: MangaId
-  ) : Exception("Manga has no chapters. (extensionId=${extensionId.rawId}, mangaId=${mangaId.id})")
+  ) : Exception("Manga has no chapters. (extensionId=${extensionId.id}, mangaId=${mangaId.id})")
 
   class MangaChapterNotFound(
     extensionId: ExtensionId,
     mangaId: MangaId,
     mangaChapterId: MangaChapterId
-  ) : Exception("Manga chapter not found. (extensionId=${extensionId.rawId}, mangaId=${mangaId.id}, mangaChapterId=${mangaChapterId.id})")
+  ) : Exception("Manga chapter not found. (extensionId=${extensionId.id}, mangaId=${mangaId.id}, mangaChapterId=${mangaChapterId.id})")
 
 }

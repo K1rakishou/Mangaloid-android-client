@@ -2,6 +2,7 @@ package com.github.mangaloid.client.screens.chapters
 
 import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.ViewModelWithState
+import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.di.DependenciesGraph
@@ -18,36 +19,36 @@ class ChaptersScreenViewModel(
 
   init {
     viewModelScope.launch {
+      updateState { copy(currentMangaAsync = AsyncData.Loading()) }
+
       val mangaResult = mangaRepository.getMangaByMangaId(extensionId, mangaId)
       if (mangaResult is ModularResult.Error) {
-        updateState {
-          copy(currentMangaResult = ModularResult.error(mangaResult.error))
-        }
+        updateState { copy(currentMangaAsync = AsyncData.Error(mangaResult.error)) }
         return@launch
-      } else {
-        val mangaWithChapters = (mangaResult as ModularResult.Value).value
-        if (mangaWithChapters == null) {
-          updateState {
-            val error = MangaRepository.MangaNotFound(extensionId, mangaId)
-            copy(currentMangaResult = ModularResult.error(error))
-          }
-
-          return@launch
-        }
-
-        if (!mangaWithChapters.hasChapters()) {
-          updateState {
-            val error = MangaRepository.MangaHasNoChapters(extensionId, mangaId)
-            copy(currentMangaResult = ModularResult.error(error))
-          }
-
-          return@launch
-        }
-
-        updateState { copy(currentMangaResult = ModularResult.value(mangaWithChapters)) }
       }
+
+      val mangaWithChapters = (mangaResult as ModularResult.Value).value
+      if (mangaWithChapters == null) {
+        updateState {
+          val error = MangaRepository.MangaNotFound(extensionId, mangaId)
+          copy(currentMangaAsync = AsyncData.Error(error))
+        }
+
+        return@launch
+      }
+
+      if (!mangaWithChapters.hasChapters()) {
+        updateState {
+          val error = MangaRepository.MangaHasNoChapters(extensionId, mangaId)
+          copy(currentMangaAsync = AsyncData.Error(error))
+        }
+
+        return@launch
+      }
+
+      updateState { copy(currentMangaAsync = AsyncData.Data(mangaWithChapters)) }
     }
   }
 
-  data class ChaptersScreenState(val currentMangaResult: ModularResult<Manga>? = null)
+  data class ChaptersScreenState(val currentMangaAsync: AsyncData<Manga> = AsyncData.NotInitialized())
 }

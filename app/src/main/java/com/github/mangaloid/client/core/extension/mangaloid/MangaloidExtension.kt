@@ -2,11 +2,10 @@ package com.github.mangaloid.client.core.extension.mangaloid
 
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
+import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
 import com.github.mangaloid.client.di.DependenciesGraph
-import com.github.mangaloid.client.model.data.MangaChapter
-import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.model.data.*
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
@@ -27,7 +26,6 @@ class MangaloidExtension(
 
   val baseIpfsUrl = "https://ipfs.io/ipfs".toHttpUrl()
 
-  // https://ipfs.cynic.moe/api/v0/ls/bafybeigfivshobq4h5x5qwmttgqimaufmcjl6hpjcrsedj7wxxduphp7g4
   val getChapterPagesByChapterIpfsIdEndpointUrl = "https://ipfs.cynic.moe/api/v0/ls".toHttpUrl()
 
   val getMangaByIdEndpointUrl = baseBackendUrl.newBuilder()
@@ -67,7 +65,16 @@ class MangaloidExtension(
     )
   }
 
-  override suspend fun getMangaChaptersByMangaId(mangaId: MangaId): ModularResult<List<MangaChapter>> {
+  override suspend fun getManga(mangaId: MangaId): ModularResult<Manga?> {
+    return mangaloidRemoteSource.getMangaByMangaId(
+      extensionId = extensionId,
+      mangaId = mangaId,
+      getMangaByIdEndpointUrl = getMangaByIdEndpointUrl,
+      getMangaCoverThumbnailEndpointUrl = getMangaCoverThumbnailEndpointUrl
+    )
+  }
+
+  override suspend fun getMangaChapters(mangaId: MangaId): ModularResult<List<MangaChapter>> {
     return mangaloidRemoteSource.getMangaChaptersByMangaId(
       extensionId = extensionId,
       mangaId = mangaId,
@@ -75,8 +82,11 @@ class MangaloidExtension(
     )
   }
 
-  override suspend fun getMangaByMangaId(mangaId: MangaId): ModularResult<Manga?> {
-    return mangaloidRemoteSource.getMangaByMangaId(extensionId, mangaId)
+  override suspend fun getMangaChapterPages(mangaChapter: MangaChapter): ModularResult<List<DownloadableMangaPage>> {
+    return mangaloidRemoteSource.getMangaChapterPages(
+      mangaChapter = mangaChapter,
+      getChapterPagesByChapterIpfsIdEndpointUrl = getChapterPagesByChapterIpfsIdEndpointUrl,
+      chapterPagesUrl = chapterPagesUrl
+    )
   }
-
 }

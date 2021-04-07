@@ -22,7 +22,7 @@ suspend inline fun <reified T> OkHttpClient.suspendConvertIntoJsonObject(
   request: Request,
   moshi: Moshi,
   crossinline adapterFunc: () -> JsonAdapter<T> = { moshi.adapter<T>(T::class.java) }
-): ModularResult<T> {
+): ModularResult<T?> {
   return withContext(Dispatchers.IO) {
     Try {
       val response = suspendCall(request)
@@ -34,15 +34,9 @@ suspend inline fun <reified T> OkHttpClient.suspendConvertIntoJsonObject(
       val body = response.body
         ?: throw IOException("Response has no body")
 
-      val resultObject = body.source().use { bufferedSource ->
+      return@Try body.source().use { bufferedSource ->
         adapterFunc().fromJson(bufferedSource)
       }
-
-      if (resultObject == null) {
-        throw IOException("Failed to convert json into object '${T::class.java.simpleName}'")
-      }
-
-      return@Try resultObject
     }
   }
 }
@@ -166,4 +160,7 @@ private suspend fun OkHttpClient.suspendCallInternal(request: Request): Response
   }
 }
 
-class HttpError(val status: Int) : Exception("Bad response status: $status")
+class HttpError(val status: Int) : Exception("Bad response status: $status") {
+  val isNotFound: Boolean
+    get() = status == 404
+}

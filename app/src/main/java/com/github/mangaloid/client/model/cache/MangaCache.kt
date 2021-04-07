@@ -33,6 +33,22 @@ class MangaCache {
     }
   }
 
+  suspend fun replaceMangaChapters(extensionId: ExtensionId, mangaId: MangaId, mangaChapters: List<MangaChapter>) {
+    if (mangaChapters.isEmpty()) {
+      return
+    }
+
+    mutex.withLock {
+      mangaCache[extensionId]?.get(mangaId)?.replaceChapters(mangaChapters)
+    }
+  }
+
+  suspend fun updateMangaChapter(extensionId: ExtensionId, mangaChapter: MangaChapter) {
+    mutex.withLock {
+      mangaCache[extensionId]?.get(mangaChapter.mangaId)?.updateMangaChapter(mangaChapter)
+    }
+  }
+
   suspend fun getManga(extensionId: ExtensionId, mangaId: MangaId): Manga? {
     return mutex.withLock { mangaCache.get(extensionId)?.get(mangaId) }
   }
@@ -52,4 +68,5 @@ class MangaCache {
   suspend fun contains(extensionId: ExtensionId, mangaId: MangaId): Boolean {
     return mutex.withLock { mangaCache[extensionId]?.containsKey(mangaId) ?: false }
   }
+
 }

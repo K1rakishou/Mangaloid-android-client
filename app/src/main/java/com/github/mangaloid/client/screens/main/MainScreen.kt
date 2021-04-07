@@ -31,7 +31,7 @@ fun MainScreen(
   }
 
   val mainScreenViewModel: MainScreenViewModel = viewModel(
-    key = "main_screen_view_model_${selectedExtension.extensionId.rawId}",
+    key = "main_screen_view_model_${selectedExtension.extensionId.id}",
     factory = viewModelProviderFactoryOf { MainScreenViewModel(extensionId = selectedExtension.extensionId) }
   )
 

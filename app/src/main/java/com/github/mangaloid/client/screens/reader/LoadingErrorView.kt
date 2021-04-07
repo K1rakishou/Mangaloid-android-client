@@ -8,13 +8,13 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import com.github.mangaloid.client.R
 
 @SuppressLint("ViewConstructor")
-class PageLoadingErrorView(
+class LoadingErrorView(
   context: Context,
   private val error: Throwable,
   private val onRetryClicked: () -> Unit
 ) : ConstraintLayout(context) {
   init {
-    inflate(context, R.layout.reader_screen_page_loading_error_view, this)
+    inflate(context, R.layout.reader_screen_loading_error_view, this)
 
     val errorTextView = findViewById<TextView>(R.id.error_text)
     errorTextView.setText(error.toString())

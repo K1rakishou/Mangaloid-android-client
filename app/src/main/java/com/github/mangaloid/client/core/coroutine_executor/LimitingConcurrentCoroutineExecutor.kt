@@ -18,7 +18,7 @@ class LimitingConcurrentCoroutineExecutor(
     require(maxCoroutinesCount > 0) { "Bad maxCoroutinesCount param" }
   }
 
-  fun post(key: Any?, func: suspend () -> Unit) {
+  fun post(key: Any, func: suspend () -> Unit) {
     val job = coroutineScope.launch(context = dispatcher) {
       semaphore.acquire()
 
@@ -32,13 +32,12 @@ class LimitingConcurrentCoroutineExecutor(
 
         Logger.e(TAG, "func() error", error)
       } finally {
+        activeJobsMap.remove(key)
         semaphore.release()
       }
     }
 
-    if (key != null) {
-      activeJobsMap[key] = job
-    }
+    activeJobsMap[key] = job
   }
 
   fun cancel(key: Any): Boolean {

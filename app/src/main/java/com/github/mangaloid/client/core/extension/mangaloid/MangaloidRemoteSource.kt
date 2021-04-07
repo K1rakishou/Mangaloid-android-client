@@ -2,7 +2,11 @@ package com.github.mangaloid.client.core.extension.mangaloid
 
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.ExtensionId
+import com.github.mangaloid.client.core.extension.data.IpfsDirectoryObjectLinkSortable
+import com.github.mangaloid.client.core.extension.data.MangaChapterIpfsDirectory
+import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
 import com.github.mangaloid.client.model.data.*
+import com.github.mangaloid.client.util.HttpError
 import com.github.mangaloid.client.util.addEncodedQueryParameterIfNotEmpty
 import com.github.mangaloid.client.util.suspendConvertIntoJsonObject
 import com.squareup.moshi.Moshi
@@ -56,6 +60,10 @@ class MangaloidRemoteSource(
         adapterFunc = { mangaRemoteListAdapter }
       ).unwrap()
 
+      if (foundMangaRemote == null) {
+        return@Try emptyList()
+      }
+
       return@Try foundMangaRemote.map { mangaloidMangaRemote ->
         return@map MangaloidMapper.mangaRemoteToManga(
           extensionId = extensionId,
@@ -67,8 +75,46 @@ class MangaloidRemoteSource(
     }
   }
 
-  suspend fun getMangaByMangaId(extensionId: ExtensionId, mangaId: MangaId): ModularResult<Manga?> {
-    TODO()
+  suspend fun getMangaByMangaId(
+    extensionId: ExtensionId,
+    mangaId: MangaId,
+    getMangaByIdEndpointUrl: HttpUrl,
+    getMangaCoverThumbnailEndpointUrl: HttpUrl
+  ): ModularResult<Manga?> {
+    return ModularResult.Try {
+      val fullGetMangaByIdUrl = getMangaByIdEndpointUrl.newBuilder()
+        .addEncodedQueryParameter("id", mangaId.id.toString())
+        .build()
+
+      val getMangaByIdRequest = Request.Builder()
+        .get()
+        .url(fullGetMangaByIdUrl)
+        .build()
+
+      val mangaRemote = try {
+        okHttpClient.suspendConvertIntoJsonObject<MangaloidMangaRemote>(
+          request = getMangaByIdRequest,
+          moshi = moshi
+        ).unwrap()
+      } catch (httpError: HttpError) {
+        if (httpError.isNotFound) {
+          return@Try null
+        }
+
+        throw httpError
+      }
+
+      if (mangaRemote == null) {
+        return@Try null
+      }
+
+      return@Try MangaloidMapper.mangaRemoteToManga(
+        extensionId = extensionId,
+        mangaRemote = mangaRemote,
+        mangaChapters = emptyList(),
+        coversUrl = getMangaCoverThumbnailEndpointUrl
+      )
+    }
   }
 
   suspend fun getMangaChaptersByMangaId(
@@ -86,11 +132,23 @@ class MangaloidRemoteSource(
         .url(fullGetMangaChaptersByMangaIdEndpointUrl)
         .build()
 
-      val mangaChaptersRemote = okHttpClient.suspendConvertIntoJsonObject<List<MangaloidMangaChapterRemote>>(
-        request = getMangaChaptersByMangaIdRequest,
-        moshi = moshi,
-        adapterFunc = { mangaChaptersRemoteListAdapter }
-      ).unwrap()
+      val mangaChaptersRemote = try {
+        okHttpClient.suspendConvertIntoJsonObject<List<MangaloidMangaChapterRemote>>(
+          request = getMangaChaptersByMangaIdRequest,
+          moshi = moshi,
+          adapterFunc = { mangaChaptersRemoteListAdapter }
+        ).unwrap()
+      } catch (httpError: HttpError) {
+        if (httpError.isNotFound) {
+          return@Try emptyList()
+        }
+
+        throw httpError
+      }
+
+      if (mangaChaptersRemote == null) {
+        return@Try emptyList()
+      }
 
       return@Try mangaChaptersRemote.mapIndexedNotNull { index, mangaloidMangaChapterRemote ->
         val prevChapterId = mangaChaptersRemote.getOrNull(index - 1)?.chapterNo?.let { chapterNo -> MangaChapterId(chapterNo) }
@@ -99,7 +157,7 @@ class MangaloidRemoteSource(
 
         return@mapIndexedNotNull MangaChapter(
           extensionId = extensionId,
-          ownerMangaId = mangaId,
+          mangaId = mangaId,
           prevChapterId = prevChapterId,
           chapterId = chapterId,
           nextChapterId = nextChapterId,
@@ -117,6 +175,67 @@ class MangaloidRemoteSource(
             chapterId = chapterId,
             lastViewedPageIndex = null // TODO: 4/5/2021 load this from the DB
           )
+        )
+      }
+    }
+  }
+
+  suspend fun getMangaChapterPages(
+    mangaChapter: MangaChapter,
+    getChapterPagesByChapterIpfsIdEndpointUrl: HttpUrl,
+    chapterPagesUrl: HttpUrl
+  ): ModularResult<List<DownloadableMangaPage>> {
+    return ModularResult.Try {
+      val fullGetChapterPagesByChapterIpfsIdEndpointUrl = getChapterPagesByChapterIpfsIdEndpointUrl.newBuilder()
+        .addEncodedPathSegment(mangaChapter.mangaChapterIpfsId.ipfsId)
+        .build()
+
+      val getChapterPagesByChapterIpfsIdRequest = Request.Builder()
+        .get()
+        .url(fullGetChapterPagesByChapterIpfsIdEndpointUrl)
+        .build()
+
+      val mangaChapterIpfsDirectory = try {
+        okHttpClient.suspendConvertIntoJsonObject<MangaChapterIpfsDirectory>(
+          request = getChapterPagesByChapterIpfsIdRequest,
+          moshi = moshi
+        ).unwrap()
+      } catch (httpError: HttpError) {
+        if (httpError.isNotFound) {
+          return@Try emptyList()
+        }
+
+        throw httpError
+      }
+
+      if (mangaChapterIpfsDirectory == null) {
+        return@Try emptyList()
+      }
+
+      val ipfsDirectoryObject = mangaChapterIpfsDirectory.ipfsDirectoryObjects
+        // In case if the endpoint returns multiple objects, we only need one
+        .firstOrNull { ipfsDirectoryObject -> ipfsDirectoryObject.objectHash == mangaChapter.mangaChapterIpfsId.ipfsId }
+        ?: return@Try emptyList()
+
+      val ipfsDirectoryObjectLinksSorted = ipfsDirectoryObject.links
+        .mapNotNull { ipfsDirectoryObjectLink -> IpfsDirectoryObjectLinkSortable.fromIpfsDirectoryObjectLink(ipfsDirectoryObjectLink) }
+        .sortedBy { ipfsDirectoryObjectLinkSortable -> ipfsDirectoryObjectLinkSortable.mangaPageIndex }
+
+      return@Try ipfsDirectoryObjectLinksSorted.mapIndexed { index, ipfsDirectoryObjectLink ->
+        val pageFullUrl = chapterPagesUrl.newBuilder()
+          .addEncodedPathSegment(ipfsDirectoryObjectLink.fileIpfsHash)
+          .build()
+
+        return@mapIndexed DownloadableMangaPage(
+          extensionId = mangaChapter.extensionId,
+          mangaId = mangaChapter.mangaId,
+          chapterId = mangaChapter.chapterId,
+          pageFileName = ipfsDirectoryObjectLink.fileName,
+          pageFileSize = ipfsDirectoryObjectLink.fileSize,
+          url = pageFullUrl,
+          currentPage = index,
+          pageCount = ipfsDirectoryObject.links.size,
+          nextChapterId = mangaChapter.nextChapterId
         )
       }
     }

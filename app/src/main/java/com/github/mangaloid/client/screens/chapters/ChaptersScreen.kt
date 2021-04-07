@@ -11,14 +11,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.github.mangaloid.client.core.data_structure.ModularResult
+import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import com.github.mangaloid.client.ui.widget.manga.MangaErrorWidget
-import com.github.mangaloid.client.ui.widget.manga.MangaFullSizeTextWidget
+import com.github.mangaloid.client.ui.widget.manga.MangaProgressWidget
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarButtonId
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
@@ -33,28 +33,26 @@ fun ChaptersScreen(
   onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
 ) {
   val chaptersScreenViewModel: ChaptersScreenViewModel = viewModel(
-    key = "chapters_screen_view_model_${extensionId.rawId}_${mangaId.id}",
-    factory = viewModelProviderFactoryOf {
-      ChaptersScreenViewModel(
-        extensionId = extensionId,
-        mangaId = mangaId
-      )
-    }
+    key = "chapters_screen_view_model_${extensionId.id}_${mangaId.id}",
+    factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(extensionId = extensionId, mangaId = mangaId) }
   )
   val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
-  val currentMangaResult = chaptersScreenState.currentMangaResult
 
-  if (currentMangaResult == null) {
-    MangaFullSizeTextWidget("Failed to load manga with extensionId=${extensionId.rawId} and mangaId=${mangaId.id}")
-    return
+  val currentManga = when (val currentMangaAsync = chaptersScreenState.currentMangaAsync) {
+    is AsyncData.NotInitialized -> {
+      return
+    }
+    is AsyncData.Loading -> {
+      MangaProgressWidget()
+      return
+    }
+    is AsyncData.Error -> {
+      MangaErrorWidget(error = currentMangaAsync.throwable)
+      return
+    }
+    is AsyncData.Data -> currentMangaAsync.data
   }
 
-  if (currentMangaResult is ModularResult.Error) {
-    MangaErrorWidget(error = currentMangaResult.error)
-    return
-  }
-
-  val currentManga = (currentMangaResult as ModularResult.Value).value
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
   val searchQuery = toolbarState.searchInfo?.let { searchInfo ->
     if (searchInfo.toolbarSearchType != ToolbarSearchType.MangaChapterSearch) {

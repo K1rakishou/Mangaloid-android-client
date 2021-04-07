@@ -1,16 +1,16 @@
 package com.github.mangaloid.client.model.data
 
-import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.core.page_loader.DownloadableMangaPageUrl
-import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
+import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
+import com.github.mangaloid.client.core.settings.enums.SwipeDirection
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 data class MangaChapter(
   val extensionId: ExtensionId,
-  val ownerMangaId: MangaId,
+  val mangaId: MangaId,
   val prevChapterId: MangaChapterId?,
   val chapterId: MangaChapterId,
   val nextChapterId: MangaChapterId?,
@@ -25,6 +25,51 @@ data class MangaChapter(
   val pageCount: Int,
   val mangaChapterMeta: MangaChapterMeta
 ) {
+  private val chapterPages = mutableListOf<DownloadableMangaPage>()
+  private val lastChapterPagesUpdate = AtomicLong(0)
+
+  @Synchronized
+  fun replaceChapterPages(newChapterPages: List<DownloadableMangaPage>) {
+    this.chapterPages.clear()
+    this.chapterPages.addAll(newChapterPages)
+
+    lastChapterPagesUpdate.set(System.currentTimeMillis())
+  }
+
+  @Synchronized
+  fun iterateMangaChapterPages(
+    swipeDirection: SwipeDirection,
+    iterator: (Int, DownloadableMangaPage) -> Unit
+  ) {
+    when (swipeDirection) {
+      SwipeDirection.LeftToRight -> {
+        (0 until chapterPages.size).forEach { index ->
+          val downloadableMangaPage = chapterPages[index]
+          iterator(index, downloadableMangaPage)
+        }
+      }
+      SwipeDirection.RightToLeft -> {
+        (chapterPages.lastIndex downTo 0).forEach { index ->
+          val downloadableMangaPage = chapterPages[index]
+          iterator(index, downloadableMangaPage)
+        }
+      }
+    }
+  }
+
+  @Synchronized
+  fun needChapterPagesUpdate(): Boolean {
+    if (chapterPages.isEmpty()) {
+      return true
+    }
+
+    return (System.currentTimeMillis() - lastChapterPagesUpdate.get()) > ONE_HOUR
+  }
+
+  @Synchronized
+  fun getMangaChapterPage(pageIndex: Int): DownloadableMangaPage? {
+    return chapterPages.getOrNull(pageIndex)
+  }
 
   fun formatDate(): String {
     return "Date: ${MANGA_CHAPTER_DATE_FORMATTER.print(dateAdded)}"
@@ -38,27 +83,9 @@ data class MangaChapter(
     return "Page count: ${pageCount}"
   }
 
-  fun mangaChapterPageUrl(
-    mangaPage: Int,
-    pageExtension: String = AppConstants.preferredPageImageExtension
-  ): DownloadableMangaPageUrl {
-    // mangaPage starts from 1, not 0 because that's how pages are enumerated on the backend
-    val url = "https://ipfs.io/ipfs/${mangaChapterIpfsId.ipfsId}/${mangaPage}.$pageExtension".toHttpUrl()
-    val actualPageIndex = mangaPage - 1
-
-    return DownloadableMangaPageUrl(
-      extensionId = extensionId,
-      mangaId = ownerMangaId,
-      chapterId = chapterId,
-      url = url,
-      currentPage = actualPageIndex,
-      pageCount = pageCount,
-      nextChapterId = nextChapterId
-    )
-  }
-
   companion object {
     private val MANGA_CHAPTER_DATE_FORMATTER = DateTimeFormat.fullDate()
+    private val ONE_HOUR = TimeUnit.HOURS.toMillis(1)
   }
 
 }

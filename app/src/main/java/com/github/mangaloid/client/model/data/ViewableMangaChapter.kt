@@ -1,7 +1,7 @@
 package com.github.mangaloid.client.model.data
 
 import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.core.page_loader.DownloadableMangaPageUrl
+import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
 import com.github.mangaloid.client.core.settings.enums.SwipeDirection
 import com.github.mangaloid.client.util.mutableListWithCap
 
@@ -60,7 +60,7 @@ data class ViewableMangaChapter(
     ): ViewableMangaChapter {
       return ViewableMangaChapter(
         extensionId = extensionId,
-        mangaId = currentChapter.ownerMangaId,
+        mangaId = currentChapter.mangaId,
         mangaChapterId = currentChapter.chapterId,
         chapterPages = createViewableChapterPages(
           readerSwipeDirection = readerSwipeDirection,
@@ -84,16 +84,20 @@ data class ViewableMangaChapter(
       when (readerSwipeDirection) {
         SwipeDirection.LeftToRight -> {
           resultList += ViewablePage.PrevChapterPage(prevChapterId)
-          resultList += (0 until currentChapter.pageCount)
-            // Pages start with 1 not zero so we need to use "pageIndex + 1" to get the correct page url
-            .map { pageIndex -> ViewablePage.MangaPage(pageIndex, currentChapter.mangaChapterPageUrl(pageIndex + 1)) }
+
+          currentChapter.iterateMangaChapterPages(readerSwipeDirection) { pageIndex, downloadableMangaPage ->
+            resultList += ViewablePage.MangaPage(pageIndex, downloadableMangaPage)
+          }
+
           resultList += ViewablePage.NextChapterPage(nextChapterId)
         }
         SwipeDirection.RightToLeft -> {
           resultList += ViewablePage.NextChapterPage(nextChapterId)
-          resultList += (currentChapter.pageCount downTo 0)
-            // Pages start with 1 not zero so we need to use "pageIndex + 1" to get the correct page url
-            .map { pageIndex -> ViewablePage.MangaPage(pageIndex, currentChapter.mangaChapterPageUrl(pageIndex + 1)) }
+
+          currentChapter.iterateMangaChapterPages(readerSwipeDirection) { pageIndex, downloadableMangaPage ->
+            resultList += ViewablePage.MangaPage(pageIndex, downloadableMangaPage)
+          }
+
           resultList += ViewablePage.PrevChapterPage(prevChapterId)
         }
       }
@@ -105,7 +109,7 @@ data class ViewableMangaChapter(
 
 sealed class ViewablePage {
   data class PrevChapterPage(val mangaChapterId: MangaChapterId?) : ViewablePage()
-  data class MangaPage(val pageIndex: Int, val downloadableMangaPageUrl: DownloadableMangaPageUrl) : ViewablePage()
+  data class MangaPage(val pageIndex: Int, val downloadableMangaPage: DownloadableMangaPage) : ViewablePage()
   data class NextChapterPage(val mangaChapterId: MangaChapterId?) : ViewablePage()
 }
 

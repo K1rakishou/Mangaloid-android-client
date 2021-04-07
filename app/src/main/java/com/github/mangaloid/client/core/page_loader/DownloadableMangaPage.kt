@@ -5,12 +5,16 @@ import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import okhttp3.HttpUrl
 
-data class DownloadableMangaPageUrl(
+data class DownloadableMangaPage(
   val extensionId: ExtensionId,
   val mangaId: MangaId,
   val chapterId: MangaChapterId,
+  val pageFileName: String,
+  val pageFileSize: Long,
   val url: HttpUrl,
+  // zero-based
   val currentPage: Int,
+  // non-zero based
   val pageCount: Int,
   // For next chapter preloading
   val nextChapterId: MangaChapterId?
@@ -20,11 +24,11 @@ data class DownloadableMangaPageUrl(
     val start = currentPage + 1
     val end = (start + count).coerceAtMost(pageCount)
 
-    return (start until (end + 1)).map { pageIndex -> pageIndex }
+    return (start until end).map { pageIndex -> pageIndex }
   }
 
   fun debugDownloadableMangaPageId(): String {
-    return "${extensionId.rawId}-${mangaId.id}-${chapterId.id}-${currentPage}/${pageCount}"
+    return "E:${extensionId.id}-M:${mangaId.id}-C:${chapterId.id}-(cp:${currentPage}/pc:${pageCount})-(${url}/${pageFileName})"
   }
 
 }

@@ -2,15 +2,17 @@ package com.github.mangaloid.client.screens.reader
 
 import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.ViewModelWithState
+import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.core.page_loader.DownloadableMangaPageUrl
+import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.model.repository.MangaRepository
 import com.github.mangaloid.client.util.Logger
+import com.github.mangaloid.client.util.errorMessageOrClassName
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
@@ -31,14 +33,39 @@ class ReaderScreenViewModel(
 
   private suspend fun getMangaChapterInternal(mangaChapterId: MangaChapterId) {
     Logger.d(TAG, "getMangaChapterInternal($mangaChapterId)")
+    updateState { copy(currentMangaChapterAsync = AsyncData.Loading()) }
 
-    val mangaChapter = mangaRepository.getMangaChapterByIdFromCache(
+    val mangaChapterResult = mangaRepository.getMangaChapterById(
       extensionId = extensionId,
       mangaId = mangaId,
       mangaChapterId = mangaChapterId
     )
 
-    if (mangaChapter == null) {
+    if (mangaChapterResult is ModularResult.Error) {
+      updateState {
+        copy(currentMangaChapterAsync = AsyncData.Error(mangaChapterResult.error))
+      }
+
+      return
+    }
+
+    val mangaChapter = (mangaChapterResult as ModularResult.Value).value
+
+    val updatedMangaChapterResult = mangaRepository.refreshMangaChapterPagesIfNeeded(
+      extensionId = extensionId,
+      mangaChapter = mangaChapter
+    )
+
+    if (updatedMangaChapterResult is ModularResult.Error) {
+      updateState {
+        copy(currentMangaChapterAsync = AsyncData.Error(updatedMangaChapterResult.error))
+      }
+
+      return
+    }
+
+    val updatedMangaChapter = (updatedMangaChapterResult as ModularResult.Value).value
+    if (updatedMangaChapter == null) {
       updateState {
         val error = MangaRepository.MangaChapterNotFound(
           extensionId = extensionId,
@@ -46,7 +73,7 @@ class ReaderScreenViewModel(
           mangaChapterId = mangaChapterId
         )
 
-        copy(currentMangaChapterResult = ModularResult.Error(error))
+        copy(currentMangaChapterAsync = AsyncData.Error(error))
       }
 
       return
@@ -55,42 +82,45 @@ class ReaderScreenViewModel(
     updateState {
       val viewableMangaChapter = ViewableMangaChapter.fromMangaChapter(
         readerSwipeDirection = appSettings.readerSwipeDirection.get(),
-        extensionId = mangaChapter.extensionId,
-        prevChapterId = mangaChapter.prevChapterId,
-        currentChapter = mangaChapter,
-        nextChapterId = mangaChapter.nextChapterId
+        extensionId = updatedMangaChapter.extensionId,
+        prevChapterId = updatedMangaChapter.prevChapterId,
+        currentChapter = updatedMangaChapter,
+        nextChapterId = updatedMangaChapter.nextChapterId
       )
 
-      copy(currentMangaChapterResult = ModularResult.Value(viewableMangaChapter))
+      copy(currentMangaChapterAsync = AsyncData.Data(viewableMangaChapter))
     }
   }
 
   suspend fun loadImage(
     viewableMangaChapter: ViewableMangaChapter,
-    downloadableMangaPageUrl: DownloadableMangaPageUrl
+    downloadableMangaPage: DownloadableMangaPage
   ): SharedFlow<MangaPageLoader.MangaPageLoadingStatus> {
-    Logger.d(TAG, "loadImage($downloadableMangaPageUrl)")
-    val mangaPageLoadStatusFlow = mangaPageLoader.loadMangaPage(downloadableMangaPageUrl)
+    Logger.d(TAG, "loadImage(${downloadableMangaPage.debugDownloadableMangaPageId()})")
+    val mangaPageLoadStatusFlow = mangaPageLoader.loadMangaPage(downloadableMangaPage)
 
-    val pagesToPreload = formatUrlsOfPagesToPreload(
-      mangaRepository = mangaRepository,
-      viewableMangaChapter = viewableMangaChapter,
-      downloadableMangaPageUrl = downloadableMangaPageUrl,
-      preloadCount = appSettings.pagesToPreloadCount.get()
-    )
-    mangaPageLoader.preloadNextPages(pagesToPreload)
+    // Launch a separate coroutine because we may have to go to server to fetch the next manga
+    // chapter pages
+    viewModelScope.launch {
+      val pagesToPreload = formatUrlsOfPagesToPreload(
+        viewableMangaChapter = viewableMangaChapter,
+        downloadableMangaPage = downloadableMangaPage,
+        preloadCount = appSettings.pagesToPreloadCount.get()
+      )
+      mangaPageLoader.preloadNextPages(pagesToPreload)
+    }
 
     return mangaPageLoadStatusFlow
   }
 
-  fun retryLoadMangaPage(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
-    Logger.d(TAG, "retryLoadMangaPage(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
-    mangaPageLoader.retryLoadMangaPage(downloadableMangaPageUrl)
+  fun retryLoadMangaPage(downloadableMangaPage: DownloadableMangaPage) {
+    Logger.d(TAG, "retryLoadMangaPage(${downloadableMangaPage.debugDownloadableMangaPageId()})")
+    mangaPageLoader.retryLoadMangaPage(downloadableMangaPage)
   }
 
-  fun cancelLoading(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
-    if (mangaPageLoader.cancelMangaPageLoading(downloadableMangaPageUrl)) {
-      Logger.d(TAG, "cancelLoading(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+  fun cancelLoading(downloadableMangaPage: DownloadableMangaPage) {
+    if (mangaPageLoader.cancelMangaPageLoading(downloadableMangaPage)) {
+      Logger.d(TAG, "cancelLoading(${downloadableMangaPage.debugDownloadableMangaPageId()})")
     }
   }
 
@@ -99,52 +129,70 @@ class ReaderScreenViewModel(
     viewModelScope.launch { getMangaChapterInternal(mangaChapterId = newMangaChapterId) }
   }
 
-  private suspend fun formatUrlsOfPagesToPreload(
-    mangaRepository: MangaRepository,
+  @Suppress("FoldInitializerAndIfToElvis")
+  suspend fun formatUrlsOfPagesToPreload(
     viewableMangaChapter: ViewableMangaChapter,
-    downloadableMangaPageUrl: DownloadableMangaPageUrl,
+    downloadableMangaPage: DownloadableMangaPage,
     preloadCount: Int
-  ): List<DownloadableMangaPageUrl> {
-    val resultPages = mutableListOf<DownloadableMangaPageUrl>()
-    val currentChapter = mangaRepository.getMangaChapterByIdFromCache(
+  ): List<DownloadableMangaPage> {
+    val currentChapter = mangaRepository.getMangaChapterById(
       extensionId = viewableMangaChapter.extensionId,
       mangaId = viewableMangaChapter.mangaId,
       mangaChapterId = viewableMangaChapter.mangaChapterId
     )
-    val nextChapterId = downloadableMangaPageUrl.nextChapterId
+      .peekError { error ->
+        val extensionId = viewableMangaChapter.extensionId.id
+        val mangaId = viewableMangaChapter.mangaId.id
+        val mangaChapterId = viewableMangaChapter.mangaChapterId.id
+        val debugInfo = "(E: ${extensionId}, M: ${mangaId}, MC: ${mangaChapterId})"
+
+        Logger.e(TAG, "Failed to get current manga chapter $debugInfo, error=${error.errorMessageOrClassName()}")
+      }
+      .valueOrNull()
 
     if (currentChapter == null) {
-      return resultPages
+      return emptyList()
     }
 
-    resultPages += downloadableMangaPageUrl.sliceNextPages(preloadCount)
-      .map { pageIndex -> currentChapter.mangaChapterPageUrl(pageIndex + 1) }
+    val resultPages = mutableListOf<DownloadableMangaPage>()
+    val nextChapterId = downloadableMangaPage.nextChapterId
+
+    resultPages += downloadableMangaPage.sliceNextPages(preloadCount)
+      .mapNotNull { pageIndex -> currentChapter.getMangaChapterPage(pageIndex) }
 
     if (resultPages.size == preloadCount || nextChapterId == null) {
       return resultPages
     }
 
-    val nextChapter = mangaRepository.getMangaChapterByIdFromCache(
+    val nextChapter = mangaRepository.getMangaChapterById(
       extensionId = viewableMangaChapter.extensionId,
       mangaId = viewableMangaChapter.mangaId,
       mangaChapterId = nextChapterId
     )
+      .peekError { error ->
+        val extensionId = viewableMangaChapter.extensionId.id
+        val mangaId = viewableMangaChapter.mangaId.id
+        val mangaChapterId = nextChapterId.id
+        val debugInfo = "(E: ${extensionId}, M: ${mangaId}, MC: ${mangaChapterId})"
 
-    checkNotNull(nextChapter) {
-      "Next chapter is null for some unknown reason. " +
-        "viewableMangaChapter=$viewableMangaChapter, nextChapterId=$nextChapterId"
+        Logger.e(TAG, "Failed to get next manga chapter $debugInfo, error=${error.errorMessageOrClassName()}")
+      }
+      .valueOrNull()
+
+    if (nextChapter == null) {
+      return emptyList()
     }
 
     val preloadFromNextChapterCount = preloadCount - resultPages.size
 
     resultPages += (0 until preloadFromNextChapterCount)
-      .map { pageIndex -> nextChapter.mangaChapterPageUrl(pageIndex + 1) }
+      .mapNotNull { pageIndex -> nextChapter.getMangaChapterPage(pageIndex) }
 
     return resultPages
   }
 
   data class ReaderScreenState(
-    val currentMangaChapterResult: ModularResult<ViewableMangaChapter>? = null,
+    val currentMangaChapterAsync: AsyncData<ViewableMangaChapter> = AsyncData.NotInitialized(),
   )
 
   companion object {

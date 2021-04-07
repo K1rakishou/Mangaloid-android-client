@@ -7,6 +7,7 @@ import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.util.BackgroundUtils
 import com.github.mangaloid.client.util.Logger
+import com.github.mangaloid.client.util.errorMessageOrClassName
 import com.github.mangaloid.client.util.suspendStoreIntoCacheIfNotCachedYet
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +29,7 @@ class MangaPageLoader(
   private val cacheHandler: CacheHandler,
   private val okHttpClient: OkHttpClient
 ) {
-  private val mangaPages = LruCache<DownloadableMangaPageUrl, LoadableMangaPage>(256)
+  private val mangaPages = LruCache<DownloadableMangaPage, LoadableMangaPage>(256)
 
   private val limitingConcurrentCoroutineExecutor = LimitingConcurrentCoroutineExecutor(
     maxCoroutinesCount = appSettings.pagesToPreloadCount.getBlocking(),
@@ -36,11 +37,11 @@ class MangaPageLoader(
     dispatcher = Dispatchers.Main
   )
 
-  fun loadMangaPage(downloadableMangaPageUrl: DownloadableMangaPageUrl): SharedFlow<MangaPageLoadingStatus> {
+  fun loadMangaPage(downloadableMangaPage: DownloadableMangaPage): SharedFlow<MangaPageLoadingStatus> {
     BackgroundUtils.ensureMainThread()
-    Logger.d(TAG, "loadMangaPage(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+    Logger.d(TAG, "loadMangaPage(${downloadableMangaPage.debugDownloadableMangaPageId()})")
 
-    val existingLoadableMangaPage = mangaPages.get(downloadableMangaPageUrl)
+    val existingLoadableMangaPage = mangaPages.get(downloadableMangaPage)
     val currentLoadableMangaPageStatus = existingLoadableMangaPage?.currentValue()
 
     val mangaPage = if (existingLoadableMangaPage != null
@@ -49,136 +50,136 @@ class MangaPageLoader(
       return existingLoadableMangaPage.listenForLoadStatus()
     } else {
       // Haven't been loaded yet or failed to load previously, try to load again
-      LoadableMangaPage(downloadableMangaPageUrl)
+      LoadableMangaPage(downloadableMangaPage)
     }
 
-    mangaPages.put(downloadableMangaPageUrl, mangaPage)
+    mangaPages.put(downloadableMangaPage, mangaPage)
 
-    limitingConcurrentCoroutineExecutor.post(key = downloadableMangaPageUrl) {
-      loadMangaPageInternal(downloadableMangaPageUrl)
+    limitingConcurrentCoroutineExecutor.post(key = downloadableMangaPage) {
+      loadMangaPageInternal(downloadableMangaPage)
     }
 
     return mangaPage.listenForLoadStatus()
   }
 
-  fun preloadNextPages(pagesToPreload: List<DownloadableMangaPageUrl>) {
+  fun preloadNextPages(pagesToPreload: List<DownloadableMangaPage>) {
     BackgroundUtils.ensureMainThread()
-
-    val pageIndexesString = pagesToPreload
-      .joinToString { downloadableMangaPageUrl -> downloadableMangaPageUrl.debugDownloadableMangaPageId() }
-    Logger.d(TAG, "preloadNextPages($pageIndexesString)")
 
     if (pagesToPreload.isEmpty()) {
       return
     }
 
-    pagesToPreload.forEach { downloadableMangaPageUrl ->
-      val existingLoadableMangaPage = mangaPages.get(downloadableMangaPageUrl)
-
-      val mangaPage = if (existingLoadableMangaPage != null) {
+    pagesToPreload.forEach { downloadableMangaPage ->
+      val existingLoadableMangaPage = mangaPages.get(downloadableMangaPage)
+      if (existingLoadableMangaPage != null) {
         // Already cached or is being loaded, no need to do anything
         return@forEach
-      } else {
-        // Haven't been loaded yet or failed to load previously, try to preload it
-        LoadableMangaPage(downloadableMangaPageUrl)
       }
 
-      mangaPages.put(downloadableMangaPageUrl, mangaPage)
+      // Haven't been loaded yet or failed to load previously, try to preload it
+      val mangaPage =  LoadableMangaPage(downloadableMangaPage)
 
-      limitingConcurrentCoroutineExecutor.post(key = downloadableMangaPageUrl) {
-        loadMangaPageInternal(downloadableMangaPageUrl)
+      Logger.d(TAG, "preloadNextPages(${downloadableMangaPage.debugDownloadableMangaPageId()})")
+      mangaPages.put(downloadableMangaPage, mangaPage)
+
+      limitingConcurrentCoroutineExecutor.post(key = downloadableMangaPage) {
+        loadMangaPageInternal(downloadableMangaPage)
       }
     }
   }
 
-  fun retryLoadMangaPage(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
+  fun retryLoadMangaPage(downloadableMangaPage: DownloadableMangaPage) {
     BackgroundUtils.ensureMainThread()
-    Logger.d(TAG, "retryLoadMangaPage(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+    Logger.d(TAG, "retryLoadMangaPage(${downloadableMangaPage.debugDownloadableMangaPageId()})")
 
-    limitingConcurrentCoroutineExecutor.post(key = downloadableMangaPageUrl) {
-      loadMangaPageInternal(downloadableMangaPageUrl)
+    limitingConcurrentCoroutineExecutor.post(key = downloadableMangaPage) {
+      loadMangaPageInternal(downloadableMangaPage)
     }
   }
 
-  fun cancelMangaPageLoading(downloadableMangaPageUrl: DownloadableMangaPageUrl): Boolean {
+  fun cancelMangaPageLoading(downloadableMangaPage: DownloadableMangaPage): Boolean {
     BackgroundUtils.ensureMainThread()
     var canceled = false
 
-    canceled = canceled or limitingConcurrentCoroutineExecutor.cancel(key = downloadableMangaPageUrl)
-    canceled = canceled or (mangaPages[downloadableMangaPageUrl]?.cancel() ?: false)
+    canceled = canceled or limitingConcurrentCoroutineExecutor.cancel(key = downloadableMangaPage)
+    canceled = canceled or (mangaPages[downloadableMangaPage]?.cancel() ?: false)
 
     if (canceled) {
-      Logger.d(TAG, "cancelMangaPageLoading(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+      Logger.d(TAG, "cancelMangaPageLoading(${downloadableMangaPage.debugDownloadableMangaPageId()})")
     }
 
     return canceled
   }
 
-  private suspend fun loadMangaPageInternal(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
+  private suspend fun loadMangaPageInternal(downloadableMangaPage: DownloadableMangaPage) {
     BackgroundUtils.ensureMainThread()
 
-    val loadableMangaPage = mangaPages.get(downloadableMangaPageUrl)
+    val loadableMangaPage = mangaPages.get(downloadableMangaPage)
       ?: return
 
     if (loadableMangaPage.isCanceled()) {
-      val status = MangaPageLoadingStatus.Canceled(downloadableMangaPageUrl)
-      mangaPages[downloadableMangaPageUrl]?.emit(status)
+      val status = MangaPageLoadingStatus.Canceled(downloadableMangaPage)
+      mangaPages[downloadableMangaPage]?.emit(status)
       return
     }
 
     try {
-      downloadPageInternal(downloadableMangaPageUrl, loadableMangaPage)
+      downloadPageInternal(downloadableMangaPage, loadableMangaPage)
         .flowOn(Dispatchers.Main)
         .collect { mangaPageLoadingStatus ->
           BackgroundUtils.ensureMainThread()
 
-          mangaPages[downloadableMangaPageUrl]?.emit(mangaPageLoadingStatus)
+          mangaPages[downloadableMangaPage]?.emit(mangaPageLoadingStatus)
         }
     } catch (error: Throwable) {
-      val status = MangaPageLoadingStatus.Error(downloadableMangaPageUrl, error)
-      mangaPages[downloadableMangaPageUrl]?.emit(status)
+      val status = MangaPageLoadingStatus.Error(downloadableMangaPage, error)
+      mangaPages[downloadableMangaPage]?.emit(status)
     }
   }
 
   private suspend fun downloadPageInternal(
-    downloadableMangaPageUrl: DownloadableMangaPageUrl,
+    downloadableMangaPage: DownloadableMangaPage,
     loadableMangaPage: LoadableMangaPage
   ): Flow<MangaPageLoadingStatus> {
     return flow {
       val request = Request.Builder()
         .get()
-        .url(downloadableMangaPageUrl.url)
+        .url(downloadableMangaPage.url)
         .build()
 
       val result = okHttpClient.suspendStoreIntoCacheIfNotCachedYet(
         cacheHandler = cacheHandler,
-        url = downloadableMangaPageUrl.url.toString(),
+        url = downloadableMangaPage.url.toString(),
         request = request,
         cancellationCheckFunc = { loadableMangaPage.isCanceled() }
       ) { progress ->
         BackgroundUtils.ensureBackgroundThread()
 
         withContext(Dispatchers.Main) {
-          emit(MangaPageLoadingStatus.Loading(downloadableMangaPageUrl, progress))
+          emit(MangaPageLoadingStatus.Loading(downloadableMangaPage, progress))
         }
       }
 
       when (result) {
         is ModularResult.Error -> {
           if (result.error is CancellationException) {
-            emit(MangaPageLoadingStatus.Canceled(downloadableMangaPageUrl))
+            Logger.e(TAG, "downloadPageInternal(${downloadableMangaPage.debugDownloadableMangaPageId()}) Canceled")
+            emit(MangaPageLoadingStatus.Canceled(downloadableMangaPage))
           } else {
-            emit(MangaPageLoadingStatus.Error(downloadableMangaPageUrl, result.error))
+            Logger.e(TAG, "downloadPageInternal(${downloadableMangaPage.debugDownloadableMangaPageId()}) " +
+              "Error (${result.error.errorMessageOrClassName()})")
+            emit(MangaPageLoadingStatus.Error(downloadableMangaPage, result.error))
           }
         }
         is ModularResult.Value -> {
-          emit(MangaPageLoadingStatus.Success(downloadableMangaPageUrl, result.value))
+          Logger.d(TAG, "downloadPageInternal(${downloadableMangaPage.debugDownloadableMangaPageId()}) Success")
+          emit(MangaPageLoadingStatus.Success(downloadableMangaPage, result.value))
         }
       }
     }
   }
 
-  class LoadableMangaPage(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
+  class LoadableMangaPage(downloadableMangaPage: DownloadableMangaPage) {
     private val canceled: AtomicBoolean = AtomicBoolean(false)
     private val _loadStatusFlow = MutableSharedFlow<MangaPageLoadingStatus>(
       replay = 1,
@@ -187,8 +188,8 @@ class MangaPageLoader(
     )
 
     init {
-      _loadStatusFlow.tryEmit(MangaPageLoadingStatus.Start(downloadableMangaPageUrl))
-      _loadStatusFlow.tryEmit(MangaPageLoadingStatus.Loading(downloadableMangaPageUrl, 0f))
+      _loadStatusFlow.tryEmit(MangaPageLoadingStatus.Start(downloadableMangaPage))
+      _loadStatusFlow.tryEmit(MangaPageLoadingStatus.Loading(downloadableMangaPage, 0f))
     }
 
     fun isCanceled(): Boolean = canceled.get()
@@ -213,30 +214,30 @@ class MangaPageLoader(
   }
 
   sealed class MangaPageLoadingStatus(
-    val downloadableMangaPageUrl: DownloadableMangaPageUrl
+    val downloadableMangaPage: DownloadableMangaPage
   ) {
     class Start(
-      downloadableMangaPageUrl: DownloadableMangaPageUrl
-    ) : MangaPageLoadingStatus(downloadableMangaPageUrl)
+      downloadableMangaPage: DownloadableMangaPage
+    ) : MangaPageLoadingStatus(downloadableMangaPage)
 
     class Loading(
-      downloadableMangaPageUrl: DownloadableMangaPageUrl,
+      downloadableMangaPage: DownloadableMangaPage,
       val progress: Float?
-    ): MangaPageLoadingStatus(downloadableMangaPageUrl)
+    ): MangaPageLoadingStatus(downloadableMangaPage)
 
     class Success(
-      downloadableMangaPageUrl: DownloadableMangaPageUrl,
+      downloadableMangaPage: DownloadableMangaPage,
       val mangaPageFile: File
-    ) : MangaPageLoadingStatus(downloadableMangaPageUrl)
+    ) : MangaPageLoadingStatus(downloadableMangaPage)
 
     class Error(
-      downloadableMangaPageUrl: DownloadableMangaPageUrl,
+      downloadableMangaPage: DownloadableMangaPage,
       val throwable: Throwable
-    ) : MangaPageLoadingStatus(downloadableMangaPageUrl)
+    ) : MangaPageLoadingStatus(downloadableMangaPage)
 
     class Canceled(
-      downloadableMangaPageUrl: DownloadableMangaPageUrl
-    ) : MangaPageLoadingStatus(downloadableMangaPageUrl)
+      downloadableMangaPage: DownloadableMangaPage
+    ) : MangaPageLoadingStatus(downloadableMangaPage)
   }
 
   companion object {
