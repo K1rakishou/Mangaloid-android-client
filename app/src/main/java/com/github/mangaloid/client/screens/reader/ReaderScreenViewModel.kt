@@ -42,6 +42,9 @@ class ReaderScreenViewModel(
     )
 
     if (mangaChapterResult is ModularResult.Error) {
+      Logger.e(TAG, "getMangaChapterInternal($mangaChapterId) " +
+        "getMangaChapterById error", mangaChapterResult.error)
+
       updateState {
         copy(currentMangaChapterAsync = AsyncData.Error(mangaChapterResult.error))
       }
@@ -57,6 +60,9 @@ class ReaderScreenViewModel(
     )
 
     if (updatedMangaChapterResult is ModularResult.Error) {
+      Logger.e(TAG, "getMangaChapterInternal($mangaChapterId) " +
+        "refreshMangaChapterPagesIfNeeded error", updatedMangaChapterResult.error)
+
       updateState {
         copy(currentMangaChapterAsync = AsyncData.Error(updatedMangaChapterResult.error))
       }
@@ -64,22 +70,9 @@ class ReaderScreenViewModel(
       return
     }
 
-    val updatedMangaChapter = (updatedMangaChapterResult as ModularResult.Value).value
-    if (updatedMangaChapter == null) {
-      updateState {
-        val error = MangaRepository.MangaChapterNotFound(
-          extensionId = extensionId,
-          mangaId = mangaId,
-          mangaChapterId = mangaChapterId
-        )
-
-        copy(currentMangaChapterAsync = AsyncData.Error(error))
-      }
-
-      return
-    }
-
     updateState {
+      val updatedMangaChapter = (updatedMangaChapterResult as ModularResult.Value).value
+
       val viewableMangaChapter = ViewableMangaChapter.fromMangaChapter(
         readerSwipeDirection = appSettings.readerSwipeDirection.get(),
         extensionId = updatedMangaChapter.extensionId,
@@ -87,6 +80,11 @@ class ReaderScreenViewModel(
         currentChapter = updatedMangaChapter,
         nextChapterId = updatedMangaChapter.nextChapterId
       )
+
+      Logger.d(TAG, "getMangaChapterInternal($mangaChapterId) success. " +
+        "Loaded manga chapter ${updatedMangaChapter.chapterId.id} with " +
+        "${viewableMangaChapter.pagesCount()} pages, prevChapterId: ${updatedMangaChapter.prevChapterId}, " +
+        "nextChapterId: ${updatedMangaChapter.nextChapterId}")
 
       copy(currentMangaChapterAsync = AsyncData.Data(viewableMangaChapter))
     }

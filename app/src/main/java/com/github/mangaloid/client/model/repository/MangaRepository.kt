@@ -9,6 +9,7 @@ import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.util.Logger
 
 class MangaRepository(
   private val mangaCache: MangaCache,
@@ -17,6 +18,7 @@ class MangaRepository(
 
   suspend fun loadLibrary(extensionId: ExtensionId): ModularResult<List<Manga>> {
     return repoAsync {
+      Logger.d(TAG, "loadLibrary(extensionId=${extensionId.id})")
       ModularResult.Try { emptyList() }
     }
   }
@@ -29,6 +31,9 @@ class MangaRepository(
     genres: List<String> = emptyList()
   ): ModularResult<List<Manga>> {
     return repoAsync {
+      Logger.d(TAG, "searchForManga(extensionId=${extensionId.id}, title='${title}', author='${author}', " +
+        "artist='${artist}', genres='${genres.joinToString()}')")
+
       val foundManga = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
         .searchForManga(title, author, artist, genres)
 
@@ -46,6 +51,8 @@ class MangaRepository(
     mangaChapterId: MangaChapterId
   ): ModularResult<MangaChapter> {
     return repoAsync {
+      Logger.d(TAG, "getMangaChapterById(extensionId=${extensionId.id}, mangaId=${mangaId.id}, mangaChapterId=${mangaChapterId.id})")
+
       return@repoAsync ModularResult.Try {
         var chapterFromCache = mangaCache.getChapter(extensionId, mangaId, mangaChapterId)
         if (chapterFromCache != null) {
@@ -72,6 +79,8 @@ class MangaRepository(
 
   suspend fun getMangaByMangaId(extensionId: ExtensionId, mangaId: MangaId): ModularResult<Manga?> {
     return repoAsync {
+      Logger.d(TAG, "getMangaByMangaId(extensionId=${extensionId.id}, mangaId=${mangaId.id})")
+
       val fromCache = mangaCache.getManga(extensionId, mangaId)
       if (fromCache != null) {
         return@repoAsync refreshMangaThumbnailsIfNeeded(extensionId, fromCache)
@@ -98,6 +107,8 @@ class MangaRepository(
       if (!manga.needChaptersUpdate()) {
         return@repoAsync ModularResult.value(manga)
       }
+
+      Logger.d(TAG, "refreshMangaThumbnailsIfNeeded(extensionId=${extensionId.id}, mangaId=${manga.mangaId.id})")
 
       val chaptersResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
         .getMangaChapters(manga.mangaId)
@@ -127,6 +138,8 @@ class MangaRepository(
       if (!mangaChapter.needChapterPagesUpdate()) {
         return@repoAsync ModularResult.value(mangaChapter)
       }
+
+      Logger.d(TAG, "refreshMangaChapterPagesIfNeeded(extensionId=${extensionId.id}, mangaChapterId=${mangaChapter.chapterId.id})")
 
       val mangaChapterPagesResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
         .getMangaChapterPages(mangaChapter)
@@ -162,5 +175,9 @@ class MangaRepository(
     mangaId: MangaId,
     mangaChapterId: MangaChapterId
   ) : Exception("Manga chapter not found. (extensionId=${extensionId.id}, mangaId=${mangaId.id}, mangaChapterId=${mangaChapterId.id})")
+
+  companion object {
+    private const val TAG = "MangaRepository"
+  }
 
 }

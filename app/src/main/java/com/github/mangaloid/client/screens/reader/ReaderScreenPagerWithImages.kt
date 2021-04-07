@@ -56,7 +56,6 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   }
 
   suspend fun onMangaLoadError(throwable: Throwable) {
-    Logger.e(TAG, "currentMangaChapterResult is error", throwable)
     asyncDataView.changeState(AsyncDataView.State.Error(throwable))
     asyncDataView.onTap { onViewablePageTapped() }
   }
