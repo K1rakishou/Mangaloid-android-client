@@ -21,7 +21,14 @@ class MangaloidDrawerViewModel(
     viewModelScope.launch {
       updateState { copy(extensionsAsync = AsyncData.Loading()) }
       val allExtensions = mangaExtensionManager.preloadAllExtensions()
-      updateState { copy(extensionsAsync = AsyncData.Data(allExtensions)) }
+
+      updateState {
+        copy(
+          // TODO: 4/6/2021 persist this
+          currentExtension = allExtensions.first(),
+          extensionsAsync = AsyncData.Data(allExtensions)
+        )
+      }
     }
   }
 
@@ -36,11 +43,14 @@ class MangaloidDrawerViewModel(
   }
 
   fun selectExtension(extensionId: ExtensionId) {
-    viewModelScope.launch { updateState { copy(selectedExtensionId = extensionId) } }
+    viewModelScope.launch {
+      val selectedExtension = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
+      updateState { copy(currentExtension = selectedExtension) }
+    }
   }
 
   data class MangaloidDrawerState(
-    val selectedExtensionId: ExtensionId = ExtensionId.Mangaloid,
+    val currentExtension: AbstractMangaExtension? = null,
     val extensionsAsync: AsyncData<List<AbstractMangaExtension>> = AsyncData.NotInitialized()
   )
 

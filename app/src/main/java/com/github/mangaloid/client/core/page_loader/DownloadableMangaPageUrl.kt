@@ -11,20 +11,20 @@ data class DownloadableMangaPageUrl(
   val chapterId: MangaChapterId,
   val url: HttpUrl,
   val currentPage: Int,
-  val totalPages: Int,
+  val pageCount: Int,
   // For next chapter preloading
   val nextChapterId: MangaChapterId?
 ) {
 
   fun sliceNextPages(count: Int): List<Int> {
     val start = currentPage + 1
-    val end = (start + count).coerceAtMost(totalPages)
+    val end = (start + count).coerceAtMost(pageCount)
 
     return (start until (end + 1)).map { pageIndex -> pageIndex }
   }
 
   fun debugDownloadableMangaPageId(): String {
-    return "${extensionId.rawId}-${mangaId.id}-${chapterId.id}-${currentPage}/${totalPages}"
+    return "${extensionId.rawId}-${mangaId.id}-${chapterId.id}-${currentPage}/${pageCount}"
   }
 
 }

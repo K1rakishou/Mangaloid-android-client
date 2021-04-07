@@ -9,20 +9,21 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.ui.widget.manga.MangaErrorWidget
+import com.github.mangaloid.client.ui.widget.manga.MangaFullSizeTextWidget
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarButtonId
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
 import com.github.mangaloid.client.util.StringSpanUtils
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
-import com.google.accompanist.coil.CoilImage
 
 @Composable
 fun ChaptersScreen(
@@ -41,8 +42,19 @@ fun ChaptersScreen(
     }
   )
   val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
+  val currentMangaResult = chaptersScreenState.currentMangaResult
 
-  val currentManga = chaptersScreenState.currentManga
+  if (currentMangaResult == null) {
+    MangaFullSizeTextWidget("Failed to load manga with extensionId=${extensionId.rawId} and mangaId=${mangaId.id}")
+    return
+  }
+
+  if (currentMangaResult is ModularResult.Error) {
+    MangaErrorWidget(error = currentMangaResult.error)
+    return
+  }
+
+  val currentManga = (currentMangaResult as ModularResult.Value).value
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
   val searchQuery = toolbarState.searchInfo?.let { searchInfo ->
     if (searchInfo.toolbarSearchType != ToolbarSearchType.MangaChapterSearch) {
@@ -52,12 +64,7 @@ fun ChaptersScreen(
     return@let searchInfo.query
   }
 
-  if (currentManga == null) {
-    // Still loading
-    return
-  }
-
-  if (currentManga.chapters.isEmpty()) {
+  if (!currentManga.hasChapters()) {
     ChaptersScreenEmptyContent(mangaId, toolbarViewModel)
     return
   }
@@ -87,10 +94,10 @@ private fun ChaptersScreenContent(
       .padding(all = 8.dp)
   ) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-      items(manga.chapters.size) { index ->
+      items(manga.chaptersCount()) { index ->
         MangaChapterItem(
           manga = manga,
-          mangaChapter = manga.chapters.get(index),
+          mangaChapter = manga.getChapterByIndex(index),
           searchQuery = searchQuery,
           onMangaChapterClicked = onMangaChapterClicked
         )
@@ -133,13 +140,6 @@ private fun MangaChapterItem(
       .padding(4.dp)
       .clickable { onMangaChapterClicked(manga.mangaId, mangaChapter.chapterId) }
   ) {
-    CoilImage(
-      data = mangaChapter.chapterCoverUrl(),
-      contentDescription = null,
-      contentScale = ContentScale.Inside,
-      modifier = Modifier.aspectRatio(0.7f)
-    )
-
     Spacer(modifier = Modifier.width(8.dp))
 
     Column(modifier = Modifier.fillMaxSize()) {

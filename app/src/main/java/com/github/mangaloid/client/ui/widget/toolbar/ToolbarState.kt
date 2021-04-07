@@ -60,8 +60,8 @@ data class ToolbarState(
   fun chaptersScreenToolbar(manga: Manga): ToolbarState {
     return copy(
       toolbarType = ToolbarType.ChaptersToolbar,
-      title = manga.title,
-      subtitle = "${manga.chapters.size} chapters",
+      title = manga.titles.first(),
+      subtitle = "${manga.chaptersCount()} chapters",
       searchInfo = null,
       leftButton = ToolbarButton.BackArrow(ToolbarButtonId.BackArrow),
       rightButtons = listOf(ToolbarButton.MangaChapterSearchButton())

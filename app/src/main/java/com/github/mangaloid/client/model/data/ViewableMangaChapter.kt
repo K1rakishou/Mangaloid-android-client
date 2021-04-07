@@ -79,19 +79,19 @@ data class ViewableMangaChapter(
       currentChapter: MangaChapter,
       nextChapterId: MangaChapterId?
     ): List<ViewablePage> {
-      val resultList = mutableListWithCap<ViewablePage>(currentChapter.pages + META_PAGES_COUNT)
+      val resultList = mutableListWithCap<ViewablePage>(currentChapter.pageCount + META_PAGES_COUNT)
 
       when (readerSwipeDirection) {
         SwipeDirection.LeftToRight -> {
           resultList += ViewablePage.PrevChapterPage(prevChapterId)
-          resultList += (0 until currentChapter.pages)
+          resultList += (0 until currentChapter.pageCount)
             // Pages start with 1 not zero so we need to use "pageIndex + 1" to get the correct page url
             .map { pageIndex -> ViewablePage.MangaPage(pageIndex, currentChapter.mangaChapterPageUrl(pageIndex + 1)) }
           resultList += ViewablePage.NextChapterPage(nextChapterId)
         }
         SwipeDirection.RightToLeft -> {
           resultList += ViewablePage.NextChapterPage(nextChapterId)
-          resultList += (currentChapter.pages downTo 0)
+          resultList += (currentChapter.pageCount downTo 0)
             // Pages start with 1 not zero so we need to use "pageIndex + 1" to get the correct page url
             .map { pageIndex -> ViewablePage.MangaPage(pageIndex, currentChapter.mangaChapterPageUrl(pageIndex + 1)) }
           resultList += ViewablePage.PrevChapterPage(prevChapterId)

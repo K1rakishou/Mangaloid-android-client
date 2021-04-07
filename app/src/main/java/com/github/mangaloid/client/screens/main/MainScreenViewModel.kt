@@ -21,7 +21,7 @@ class MainScreenViewModel(
     viewModelScope.launch {
       updateState { copy(initialLoadState = AsyncData.Loading()) }
 
-      when (val result = mangaRepository.loadMangaFromServer(extensionId)) {
+      when (val result = mangaRepository.loadLibrary(extensionId)) {
         is ModularResult.Error -> {
           Logger.e(TAG, "mangaRepository.loadMangaFromServer() error", result.error)
           updateState { copy(initialLoadState = AsyncData.Error(result.error)) }

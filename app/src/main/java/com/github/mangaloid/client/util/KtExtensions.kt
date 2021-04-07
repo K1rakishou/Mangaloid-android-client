@@ -7,6 +7,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import okhttp3.HttpUrl
 import okhttp3.internal.and
 import okio.*
 import okio.ByteString.Companion.encodeUtf8
@@ -217,4 +218,12 @@ fun <K, V> MutableMap<K, V>.putIfNotExists(key: K, value: V) {
   if (!containsKey(key)) {
     put(key, value)
   }
+}
+
+fun HttpUrl.Builder.addEncodedQueryParameterIfNotEmpty(encodedName: String, encodedValue: String): HttpUrl.Builder {
+  if (encodedValue.isNotEmpty()) {
+    return addEncodedQueryParameter(encodedName, encodedValue)
+  }
+
+  return this
 }

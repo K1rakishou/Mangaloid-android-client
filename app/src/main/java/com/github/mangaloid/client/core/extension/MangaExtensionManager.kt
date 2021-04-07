@@ -24,7 +24,7 @@ class MangaExtensionManager {
   }
 
   @Suppress("UNCHECKED_CAST")
-  suspend fun <T> getMangaExtensionById(extensionId: ExtensionId): T {
+  suspend fun <T : AbstractMangaExtension> getMangaExtensionById(extensionId: ExtensionId): T {
     return mutex.withLock {
       if (cachedMangaExtensions.containsKey(extensionId)) {
         return@withLock cachedMangaExtensions[extensionId]!! as T

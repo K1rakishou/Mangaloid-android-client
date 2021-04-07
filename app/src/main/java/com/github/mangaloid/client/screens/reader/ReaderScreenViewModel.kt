@@ -89,8 +89,9 @@ class ReaderScreenViewModel(
   }
 
   fun cancelLoading(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
-    Logger.d(TAG, "cancelLoading(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
-    mangaPageLoader.cancelMangaPageLoading(downloadableMangaPageUrl)
+    if (mangaPageLoader.cancelMangaPageLoading(downloadableMangaPageUrl)) {
+      Logger.d(TAG, "cancelLoading(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+    }
   }
 
   fun switchMangaChapter(newMangaChapterId: MangaChapterId) {

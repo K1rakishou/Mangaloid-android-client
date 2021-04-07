@@ -15,33 +15,27 @@ data class MangaChapter(
   val chapterId: MangaChapterId,
   val nextChapterId: MangaChapterId?,
   val mangaChapterIpfsId: MangaChapterIpfsId,
+  val groupId: Int?,
   val title: String,
-  val group: String,
-  val date: DateTime,
-  val pages: Int,
-  val mangaChapterMeta: MangaChapterMeta,
-  val chapterPagesUrl: HttpUrl
+  val chapterPostfix: String,
+  val ordinal: Int?,
+  val version: Int,
+  val languageId: String,
+  val dateAdded: DateTime,
+  val pageCount: Int,
+  val mangaChapterMeta: MangaChapterMeta
 ) {
 
   fun formatDate(): String {
-    return "Date: ${MANGA_CHAPTER_DATE_FORMATTER.print(date)}"
+    return "Date: ${MANGA_CHAPTER_DATE_FORMATTER.print(dateAdded)}"
   }
 
   fun formatGroup(): String {
-    return "TL Group: ${group}"
+    return "TL Group: ${groupId}"
   }
 
   fun formatPages(): String {
-    return "Pages: ${pages}"
-  }
-
-  fun chapterCoverUrl(pageExtension: String = AppConstants.preferredPageImageExtension): HttpUrl {
-    return chapterPagesUrl.newBuilder()
-      .addEncodedPathSegment(mangaChapterIpfsId.cid)
-      // TODO(hardcoded): 3/29/2021: For now it's impossible to know page's image extension and
-      //  there are no chapter covers.
-      .addEncodedPathSegment("1.$pageExtension")
-      .build()
+    return "Page count: ${pageCount}"
   }
 
   fun mangaChapterPageUrl(
@@ -49,7 +43,7 @@ data class MangaChapter(
     pageExtension: String = AppConstants.preferredPageImageExtension
   ): DownloadableMangaPageUrl {
     // mangaPage starts from 1, not 0 because that's how pages are enumerated on the backend
-    val url = "https://ipfs.io/ipfs/${mangaChapterIpfsId.cid}/${mangaPage}.$pageExtension".toHttpUrl()
+    val url = "https://ipfs.io/ipfs/${mangaChapterIpfsId.ipfsId}/${mangaPage}.$pageExtension".toHttpUrl()
     val actualPageIndex = mangaPage - 1
 
     return DownloadableMangaPageUrl(
@@ -58,7 +52,7 @@ data class MangaChapter(
       chapterId = chapterId,
       url = url,
       currentPage = actualPageIndex,
-      totalPages = pages,
+      pageCount = pageCount,
       nextChapterId = nextChapterId
     )
   }

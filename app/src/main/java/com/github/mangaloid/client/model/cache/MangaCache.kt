@@ -17,6 +17,13 @@ class MangaCache {
   @GuardedBy("mutex")
   private val mangaCache = mutableMapWithCap<ExtensionId, MutableMap<MangaId, Manga>>(16)
 
+  suspend fun put(extensionId: ExtensionId, manga: Manga) {
+    mutex.withLock {
+      mangaCache.putIfNotExists(extensionId, mutableMapWithCap(64))
+      mangaCache[extensionId]!!.put(manga.mangaId, manga)
+    }
+  }
+
   suspend fun putMany(extensionId: ExtensionId, mangaList: List<Manga>) {
     mutex.withLock {
       mangaList.forEach { manga ->
@@ -38,8 +45,11 @@ class MangaCache {
     return mutex.withLock {
       return@withLock mangaCache.get(extensionId)
         ?.get(mangaId)
-        ?.chapters
-        ?.firstOrNull { mangaChapter -> mangaChapter.chapterId == mangaChapterId }
+        ?.getChapterByChapterId(mangaChapterId)
     }
+  }
+
+  suspend fun contains(extensionId: ExtensionId, mangaId: MangaId): Boolean {
+    return mutex.withLock { mangaCache[extensionId]?.containsKey(mangaId) ?: false }
   }
 }

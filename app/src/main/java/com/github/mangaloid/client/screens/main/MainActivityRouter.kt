@@ -87,22 +87,27 @@ fun MainActivityRouterContent(
         MainScreen(
           toolbarViewModel = toolbarViewModel,
           drawerViewModel = drawerViewModel,
-          onMangaClicked = { clickedManga -> navController.navigate("chapters/${clickedManga.mangaId.id}") }
+          onMangaClicked = { clickedManga ->
+            navController.navigate("chapters/${clickedManga.extensionId.rawId}/${clickedManga.mangaId.id}")
+          }
         )
       }
     }
 
     composable(
-      route = "chapters/{${MangaId.MANGA_ID_KEY}}",
-      arguments = listOf(navArgument(MangaId.MANGA_ID_KEY) { type = NavType.IntType })
+      route = "chapters/{${ExtensionId.EXTENSION_ID_KEY}}/{${MangaId.MANGA_ID_KEY}}",
+      arguments = listOf(
+        navArgument(ExtensionId.EXTENSION_ID_KEY) { type = NavType.IntType },
+        navArgument(MangaId.MANGA_ID_KEY) { type = NavType.IntType }
+      )
     ) { backstackEntry ->
-      val mangaIdParam =
-        MangaId.fromRawValueOrNull(backstackEntry.arguments?.getInt(MangaId.MANGA_ID_KEY))
       val extensionIdParam =
         ExtensionId.fromRawValueOrNull(backstackEntry.arguments?.getInt(ExtensionId.EXTENSION_ID_KEY))
+      val mangaIdParam =
+        MangaId.fromRawValueOrNull(backstackEntry.arguments?.getInt(MangaId.MANGA_ID_KEY))
 
-      requireNotNull(mangaIdParam) { "MangaId must not be null" }
       requireNotNull(extensionIdParam) { "ExtensionId must not be null" }
+      requireNotNull(mangaIdParam) { "MangaId must not be null" }
 
       val context = LocalContext.current
 

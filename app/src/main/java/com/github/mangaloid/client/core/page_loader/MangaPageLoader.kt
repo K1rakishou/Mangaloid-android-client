@@ -100,12 +100,18 @@ class MangaPageLoader(
     }
   }
 
-  fun cancelMangaPageLoading(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
+  fun cancelMangaPageLoading(downloadableMangaPageUrl: DownloadableMangaPageUrl): Boolean {
     BackgroundUtils.ensureMainThread()
-    Logger.d(TAG, "cancelMangaPageLoading(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+    var canceled = false
 
-    limitingConcurrentCoroutineExecutor.cancel(key = downloadableMangaPageUrl)
-    mangaPages[downloadableMangaPageUrl]?.cancel()
+    canceled = canceled or limitingConcurrentCoroutineExecutor.cancel(key = downloadableMangaPageUrl)
+    canceled = canceled or (mangaPages[downloadableMangaPageUrl]?.cancel() ?: false)
+
+    if (canceled) {
+      Logger.d(TAG, "cancelMangaPageLoading(${downloadableMangaPageUrl.debugDownloadableMangaPageId()})")
+    }
+
+    return canceled
   }
 
   private suspend fun loadMangaPageInternal(downloadableMangaPageUrl: DownloadableMangaPageUrl) {
@@ -195,12 +201,13 @@ class MangaPageLoader(
       _loadStatusFlow.emit(mangaPageLoadingStatus)
     }
 
-    fun cancel() {
+    fun cancel(): Boolean {
       if (currentValue() !is MangaPageLoadingStatus.Loading) {
-        return
+        return false
       }
 
       canceled.compareAndSet(false, true)
+      return true
     }
 
   }

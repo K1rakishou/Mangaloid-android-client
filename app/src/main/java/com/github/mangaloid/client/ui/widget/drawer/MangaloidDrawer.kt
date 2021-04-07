@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -29,12 +30,18 @@ import dev.chrisbanes.accompanist.insets.statusBarsPadding
 fun MangaloidDrawer() {
   val mangaloidDrawerViewModel = viewModel<MangaloidDrawerViewModel>()
   val mangaloidDrawerState by mangaloidDrawerViewModel.stateViewable.collectAsState()
-  val selectedExtensionId = mangaloidDrawerState.selectedExtensionId
+
+  val selectedExtension = mangaloidDrawerState.currentExtension
+  if (selectedExtension == null) {
+    MangaloidDrawerLoadingContent()
+    return
+  }
 
   when (val extensionsAsync = mangaloidDrawerState.extensionsAsync) {
     is AsyncData.NotInitialized -> return
     is AsyncData.Loading -> {
       // TODO: 4/4/2021
+      MangaloidDrawerLoadingContent()
       return
     }
     is AsyncData.Error -> {
@@ -43,11 +50,22 @@ fun MangaloidDrawer() {
     }
     is AsyncData.Data -> {
       MangaloidDrawerContent(
-        selectedExtensionId = selectedExtensionId,
+        selectedExtensionId = selectedExtension.extensionId,
         extensions = extensionsAsync.data,
         onSelected = { extensionId -> mangaloidDrawerViewModel.selectExtension(extensionId = extensionId) }
       )
     }
+  }
+}
+
+@Composable
+private fun MangaloidDrawerLoadingContent() {
+  Box(modifier = Modifier.fillMaxSize()) {
+    CircularProgressIndicator(
+      modifier = Modifier
+        .align(Alignment.Center)
+        .size(42.dp, 42.dp)
+    )
   }
 }
 
@@ -71,7 +89,7 @@ private fun MangaloidDrawerContent(
 
         MangaloidDrawerItem(
           extension = extension,
-          isSelected = extension.mangaExtensionId == selectedExtensionId,
+          isSelected = extension.extensionId == selectedExtensionId,
           onSelected = onSelected
         )
       }
@@ -96,7 +114,7 @@ private fun MangaloidDrawerItem(
       .fillMaxWidth()
       .height(48.dp)
       .background(background)
-      .clickable { onSelected(extension.mangaExtensionId) }
+      .clickable { onSelected(extension.extensionId) }
       .padding(horizontal = 8.dp, vertical = 2.dp)
   ) {
     CoilImage(

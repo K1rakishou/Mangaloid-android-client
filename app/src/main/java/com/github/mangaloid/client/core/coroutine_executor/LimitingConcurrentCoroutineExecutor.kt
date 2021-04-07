@@ -41,8 +41,12 @@ class LimitingConcurrentCoroutineExecutor(
     }
   }
 
-  fun cancel(key: Any) {
-    activeJobsMap.remove(key)?.cancel()
+  fun cancel(key: Any): Boolean {
+    val activeJob = activeJobsMap.remove(key)
+      ?: return false
+
+    activeJob.cancel()
+    return true
   }
 
   companion object {

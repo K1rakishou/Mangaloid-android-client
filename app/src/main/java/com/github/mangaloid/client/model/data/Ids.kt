@@ -29,4 +29,4 @@ inline class MangaChapterId(val id: Int) {
   }
 }
 
-inline class MangaChapterIpfsId(val cid: String)
+inline class MangaChapterIpfsId(val ipfsId: String)

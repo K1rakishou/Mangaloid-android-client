@@ -8,6 +8,7 @@ import com.github.mangaloid.client.core.extension.MangaExtensionManager
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.model.repository.MangaRepository
 import com.github.mangaloid.client.core.extension.mangaloid.MangaloidRemoteSource
+import com.github.mangaloid.client.core.misc.MangaloidDnsSelector
 import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.model.cache.MangaCache
 import com.squareup.moshi.Moshi
@@ -75,6 +76,7 @@ object DependenciesGraph {
       .readTimeout(20, TimeUnit.SECONDS)
       .writeTimeout(20, TimeUnit.SECONDS)
       .connectTimeout(20, TimeUnit.SECONDS)
+      .dns(MangaloidDnsSelector())
       .build()
 
     moshi = Moshi.Builder()
