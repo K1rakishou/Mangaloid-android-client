@@ -5,8 +5,8 @@ import com.github.mangaloid.client.core.ViewModelWithState
 import com.github.mangaloid.client.core.coroutine_executor.DebouncingCoroutineExecutor
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.data_structure.ModularResult
-import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.di.DependenciesGraph
+import com.github.mangaloid.client.model.data.ExtensionId
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.repository.MangaRepository
 import kotlinx.coroutines.Job

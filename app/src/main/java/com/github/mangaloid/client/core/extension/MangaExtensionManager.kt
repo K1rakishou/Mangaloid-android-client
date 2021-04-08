@@ -2,6 +2,7 @@ package com.github.mangaloid.client.core.extension
 
 import androidx.annotation.GuardedBy
 import com.github.mangaloid.client.core.extension.mangaloid.MangaloidExtension
+import com.github.mangaloid.client.model.data.ExtensionId
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean

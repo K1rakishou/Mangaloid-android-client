@@ -1,6 +1,5 @@
 package com.github.mangaloid.client.model.data
 
-import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
 import com.github.mangaloid.client.core.settings.enums.SwipeDirection
 import org.joda.time.DateTime
@@ -9,10 +8,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 data class MangaChapter(
-  val extensionId: ExtensionId,
-  val mangaId: MangaId,
+  val mangaChapterDescriptor: MangaChapterDescriptor,
   val prevChapterId: MangaChapterId?,
-  val chapterId: MangaChapterId,
   val nextChapterId: MangaChapterId?,
   val mangaChapterIpfsId: MangaChapterIpfsId,
   val groupId: Int?,
@@ -27,6 +24,13 @@ data class MangaChapter(
 ) {
   private val chapterPages = mutableListOf<DownloadableMangaPage>()
   private val lastChapterPagesUpdate = AtomicLong(0)
+
+  val extensionId: ExtensionId
+    get() = mangaChapterDescriptor.extensionId
+  val mangaId: MangaId
+    get() = mangaChapterDescriptor.mangaId
+  val chapterId: MangaChapterId
+    get() = mangaChapterDescriptor.mangaChapterId
 
   @Synchronized
   fun replaceChapterPages(newChapterPages: List<DownloadableMangaPage>) {

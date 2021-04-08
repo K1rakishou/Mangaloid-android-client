@@ -1,7 +1,6 @@
 package com.github.mangaloid.client.core.extension.mangaloid
 
 import com.github.mangaloid.client.core.data_structure.ModularResult
-import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.core.extension.data.IpfsDirectoryObjectLinkSortable
 import com.github.mangaloid.client.core.extension.data.MangaChapterIpfsDirectory
 import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
@@ -150,16 +149,26 @@ class MangaloidRemoteSource(
         return@Try emptyList()
       }
 
-      return@Try mangaChaptersRemote.mapIndexedNotNull { index, mangaloidMangaChapterRemote ->
-        val prevChapterId = mangaChaptersRemote.getOrNull(index - 1)?.chapterNo?.let { chapterNo -> MangaChapterId(chapterNo) }
+      return@Try mangaChaptersRemote.mapIndexed { index, mangaloidMangaChapterRemote ->
         val chapterId = MangaChapterId(mangaloidMangaChapterRemote.chapterNo)
-        val nextChapterId = mangaChaptersRemote.getOrNull(index + 1)?.chapterNo?.let { chapterNo -> MangaChapterId(chapterNo) }
+        val prevChapterId = mangaChaptersRemote.getOrNull(index - 1)
+          ?.chapterNo
+          ?.let { chapterNo -> MangaChapterId(chapterNo) }
+        val nextChapterId = mangaChaptersRemote.getOrNull(index + 1)
+          ?.chapterNo
+          ?.let { chapterNo -> MangaChapterId(chapterNo) }
 
-        return@mapIndexedNotNull MangaChapter(
-          extensionId = extensionId,
-          mangaId = mangaId,
+        val mangaChapterDescriptor = MangaChapterDescriptor(
+          mangaDescriptor = MangaDescriptor(
+            extensionId = extensionId,
+            mangaId = mangaId
+          ),
+          mangaChapterId = chapterId
+        )
+
+        return@mapIndexed MangaChapter(
+          mangaChapterDescriptor = mangaChapterDescriptor,
           prevChapterId = prevChapterId,
-          chapterId = chapterId,
           nextChapterId = nextChapterId,
           mangaChapterIpfsId = MangaChapterIpfsId(mangaloidMangaChapterRemote.ipfsLink),
           title = mangaloidMangaChapterRemote.title,
@@ -172,7 +181,7 @@ class MangaloidRemoteSource(
           dateAdded = DateTime(),
           pageCount = mangaloidMangaChapterRemote.pageCount,
           mangaChapterMeta = MangaChapterMeta(
-            chapterId = chapterId,
+            mangaChapterDescriptor = mangaChapterDescriptor,
             lastViewedPageIndex = null // TODO: 4/5/2021 load this from the DB
           )
         )
@@ -227,9 +236,7 @@ class MangaloidRemoteSource(
           .build()
 
         return@mapIndexed DownloadableMangaPage(
-          extensionId = mangaChapter.extensionId,
-          mangaId = mangaChapter.mangaId,
-          chapterId = mangaChapter.chapterId,
+          mangaChapterDescriptor = mangaChapter.mangaChapterDescriptor,
           pageFileName = ipfsDirectoryObjectLink.fileName,
           pageFileSize = ipfsDirectoryObjectLink.fileSize,
           url = pageFullUrl,

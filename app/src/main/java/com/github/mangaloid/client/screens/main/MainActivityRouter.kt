@@ -13,10 +13,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.*
-import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.model.data.MangaId
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigate
+import androidx.navigation.compose.rememberNavController
+import com.github.mangaloid.client.model.data.MangaDescriptor
 import com.github.mangaloid.client.screens.chapters.ChaptersScreen
 import com.github.mangaloid.client.screens.reader.ReaderActivity
 import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawer
@@ -88,40 +89,32 @@ fun MainActivityRouterContent(
           toolbarViewModel = toolbarViewModel,
           drawerViewModel = drawerViewModel,
           onMangaClicked = { clickedManga ->
-            navController.navigate("chapters/${clickedManga.extensionId.id}/${clickedManga.mangaId.id}")
+            navController.currentBackStackEntry
+              ?.arguments
+              ?.putParcelable(MangaDescriptor.KEY, clickedManga.mangaDescriptor)
+
+            navController.navigate("chapters")
           }
         )
       }
     }
 
-    composable(
-      route = "chapters/{${ExtensionId.EXTENSION_ID_KEY}}/{${MangaId.MANGA_ID_KEY}}",
-      arguments = listOf(
-        navArgument(ExtensionId.EXTENSION_ID_KEY) { type = NavType.IntType },
-        navArgument(MangaId.MANGA_ID_KEY) { type = NavType.IntType }
-      )
-    ) { backstackEntry ->
-      val extensionIdParam =
-        ExtensionId.fromRawValueOrNull(backstackEntry.arguments?.getInt(ExtensionId.EXTENSION_ID_KEY))
-      val mangaIdParam =
-        MangaId.fromRawValueOrNull(backstackEntry.arguments?.getInt(MangaId.MANGA_ID_KEY))
-
-      requireNotNull(extensionIdParam) { "ExtensionId must not be null" }
-      requireNotNull(mangaIdParam) { "MangaId must not be null" }
+    composable(route = "chapters") {
+      val mangaDescriptor = navController.previousBackStackEntry
+        ?.arguments
+        ?.getParcelable<MangaDescriptor>(MangaDescriptor.KEY)
+      requireNotNull(mangaDescriptor) { "MangaDescriptor must not be null" }
 
       val context = LocalContext.current
 
       Box(modifier = Modifier.navigationBarsPadding()) {
         ChaptersScreen(
-          extensionId = extensionIdParam,
-          mangaId = mangaIdParam,
+          mangaDescriptor = mangaDescriptor,
           toolbarViewModel = toolbarViewModel,
-          onMangaChapterClicked = { clickedMangaId, clickedMangaChapterId ->
+          onMangaChapterClicked = { mangaChapterDescriptor ->
             ReaderActivity.launch(
               context = context,
-              extensionId = extensionIdParam,
-              mangaId = clickedMangaId,
-              mangaChapterId = clickedMangaChapterId
+              mangaChapterDescriptor = mangaChapterDescriptor
             )
           }
         )

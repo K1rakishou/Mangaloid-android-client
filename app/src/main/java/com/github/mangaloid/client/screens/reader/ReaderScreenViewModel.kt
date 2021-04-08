@@ -2,9 +2,9 @@ package com.github.mangaloid.client.screens.reader
 
 import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.ViewModelWithState
+import com.github.mangaloid.client.core.coroutine_executor.SerializedCoroutineExecutor
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.data_structure.ModularResult
-import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.core.settings.AppSettings
@@ -17,33 +17,28 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
 class ReaderScreenViewModel(
-  private val extensionId: ExtensionId,
-  private val mangaId: MangaId,
-  private val initialMangaChapterId: MangaChapterId,
+  private val initialMangaChapterDescriptor: MangaChapterDescriptor,
   private val appSettings: AppSettings = DependenciesGraph.appSettings,
   private val mangaRepository: MangaRepository = DependenciesGraph.mangaRepository,
   private val mangaPageLoader: MangaPageLoader = DependenciesGraph.mangaPageLoader
 ) : ViewModelWithState<ReaderScreenViewModel.ReaderScreenState>(ReaderScreenState()) {
+  private val updateMangaChapterExecutor = SerializedCoroutineExecutor(viewModelScope)
 
   init {
     viewModelScope.launch {
-      getMangaChapterInternal(initialMangaChapterId)
+      getMangaChapterInternal(initialMangaChapterDescriptor)
     }
   }
 
-  private suspend fun getMangaChapterInternal(mangaChapterId: MangaChapterId) {
-    Logger.d(TAG, "getMangaChapterInternal($mangaChapterId)")
+  private suspend fun getMangaChapterInternal(mangaChapterDescriptor: MangaChapterDescriptor) {
+    Logger.d(TAG, "getMangaChapterInternal($mangaChapterDescriptor)")
     updateState { copy(currentMangaChapterAsync = AsyncData.Loading()) }
 
-    val mangaChapterResult = mangaRepository.getMangaChapterById(
-      extensionId = extensionId,
-      mangaId = mangaId,
-      mangaChapterId = mangaChapterId
-    )
+    val mangaChapterResult = mangaRepository.getMangaChapter(mangaChapterDescriptor)
 
     if (mangaChapterResult is ModularResult.Error) {
-      Logger.e(TAG, "getMangaChapterInternal($mangaChapterId) " +
-        "getMangaChapterById error", mangaChapterResult.error)
+      Logger.e(TAG, "getMangaChapterInternal($mangaChapterDescriptor) " +
+        "getMangaChapter error", mangaChapterResult.error)
 
       updateState {
         copy(currentMangaChapterAsync = AsyncData.Error(mangaChapterResult.error))
@@ -55,12 +50,12 @@ class ReaderScreenViewModel(
     val mangaChapter = (mangaChapterResult as ModularResult.Value).value
 
     val updatedMangaChapterResult = mangaRepository.refreshMangaChapterPagesIfNeeded(
-      extensionId = extensionId,
+      extensionId = mangaChapterDescriptor.extensionId,
       mangaChapter = mangaChapter
     )
 
     if (updatedMangaChapterResult is ModularResult.Error) {
-      Logger.e(TAG, "getMangaChapterInternal($mangaChapterId) " +
+      Logger.e(TAG, "getMangaChapterInternal($mangaChapterDescriptor) " +
         "refreshMangaChapterPagesIfNeeded error", updatedMangaChapterResult.error)
 
       updateState {
@@ -75,13 +70,12 @@ class ReaderScreenViewModel(
 
       val viewableMangaChapter = ViewableMangaChapter.fromMangaChapter(
         readerSwipeDirection = appSettings.readerSwipeDirection.get(),
-        extensionId = updatedMangaChapter.extensionId,
         prevChapterId = updatedMangaChapter.prevChapterId,
         currentChapter = updatedMangaChapter,
         nextChapterId = updatedMangaChapter.nextChapterId
       )
 
-      Logger.d(TAG, "getMangaChapterInternal($mangaChapterId) success. " +
+      Logger.d(TAG, "getMangaChapterInternal($mangaChapterDescriptor) success. " +
         "Loaded manga chapter ${updatedMangaChapter.chapterId.id} with " +
         "${viewableMangaChapter.pagesCount()} pages, prevChapterId: ${updatedMangaChapter.prevChapterId}, " +
         "nextChapterId: ${updatedMangaChapter.nextChapterId}")
@@ -123,8 +117,13 @@ class ReaderScreenViewModel(
   }
 
   fun switchMangaChapter(newMangaChapterId: MangaChapterId) {
-    Logger.d(TAG, "switchMangaChapter($newMangaChapterId)")
-    viewModelScope.launch { getMangaChapterInternal(mangaChapterId = newMangaChapterId) }
+    val newMangaChapterDescriptor = MangaChapterDescriptor(
+      mangaDescriptor = initialMangaChapterDescriptor.mangaDescriptor,
+      mangaChapterId = newMangaChapterId
+    )
+
+    Logger.d(TAG, "switchMangaChapter($newMangaChapterDescriptor)")
+    viewModelScope.launch { getMangaChapterInternal(newMangaChapterDescriptor) }
   }
 
   @Suppress("FoldInitializerAndIfToElvis")
@@ -133,18 +132,11 @@ class ReaderScreenViewModel(
     downloadableMangaPage: DownloadableMangaPage,
     preloadCount: Int
   ): List<DownloadableMangaPage> {
-    val currentChapter = mangaRepository.getMangaChapterById(
-      extensionId = viewableMangaChapter.extensionId,
-      mangaId = viewableMangaChapter.mangaId,
-      mangaChapterId = viewableMangaChapter.mangaChapterId
-    )
-      .peekError { error ->
-        val extensionId = viewableMangaChapter.extensionId.id
-        val mangaId = viewableMangaChapter.mangaId.id
-        val mangaChapterId = viewableMangaChapter.mangaChapterId.id
-        val debugInfo = "(E: ${extensionId}, M: ${mangaId}, MC: ${mangaChapterId})"
+    val currentMCD = viewableMangaChapter.mangaChapterDescriptor
 
-        Logger.e(TAG, "Failed to get current manga chapter $debugInfo, error=${error.errorMessageOrClassName()}")
+    val currentChapter = mangaRepository.getMangaChapter(currentMCD)
+      .peekError { error ->
+        Logger.e(TAG, "Failed to get current manga chapter ${currentMCD}, error=${error.errorMessageOrClassName()}")
       }
       .valueOrNull()
 
@@ -162,18 +154,14 @@ class ReaderScreenViewModel(
       return resultPages
     }
 
-    val nextChapter = mangaRepository.getMangaChapterById(
-      extensionId = viewableMangaChapter.extensionId,
-      mangaId = viewableMangaChapter.mangaId,
+    val nextMCD = MangaChapterDescriptor(
+      mangaDescriptor = currentMCD.mangaDescriptor,
       mangaChapterId = nextChapterId
     )
-      .peekError { error ->
-        val extensionId = viewableMangaChapter.extensionId.id
-        val mangaId = viewableMangaChapter.mangaId.id
-        val mangaChapterId = nextChapterId.id
-        val debugInfo = "(E: ${extensionId}, M: ${mangaId}, MC: ${mangaChapterId})"
 
-        Logger.e(TAG, "Failed to get next manga chapter $debugInfo, error=${error.errorMessageOrClassName()}")
+    val nextChapter = mangaRepository.getMangaChapter(nextMCD)
+      .peekError { error ->
+        Logger.e(TAG, "Failed to get next manga chapter $nextMCD, error=${error.errorMessageOrClassName()}")
       }
       .valueOrNull()
 
@@ -187,6 +175,10 @@ class ReaderScreenViewModel(
       .mapNotNull { pageIndex -> nextChapter.getMangaChapterPage(pageIndex) }
 
     return resultPages
+  }
+
+  fun updateMangaChapterMeta(mangaChapterMeta: MangaChapterMeta) {
+    updateMangaChapterExecutor.post { mangaRepository.updateMangaChapterMeta(mangaChapterMeta) }
   }
 
   data class ReaderScreenState(

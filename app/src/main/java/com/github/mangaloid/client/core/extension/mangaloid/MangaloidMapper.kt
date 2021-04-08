@@ -1,10 +1,6 @@
 package com.github.mangaloid.client.core.extension.mangaloid
 
-import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.model.data.Manga
-import com.github.mangaloid.client.model.data.MangaChapter
-import com.github.mangaloid.client.model.data.MangaContentType
-import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.model.data.*
 import okhttp3.HttpUrl
 
 object MangaloidMapper {
@@ -20,8 +16,7 @@ object MangaloidMapper {
     }
 
     return Manga(
-      extensionId = extensionId,
-      mangaId = mangaId,
+      mangaDescriptor = MangaDescriptor(extensionId, mangaId),
       mangaContentType = MangaContentType.fromRawValue(mangaRemote.type),
       titles = mangaRemote.titles,
       description = null,

@@ -1,14 +1,13 @@
 package com.github.mangaloid.client.core.page_loader
 
-import com.github.mangaloid.client.core.extension.ExtensionId
+import com.github.mangaloid.client.model.data.ExtensionId
+import com.github.mangaloid.client.model.data.MangaChapterDescriptor
 import com.github.mangaloid.client.model.data.MangaChapterId
 import com.github.mangaloid.client.model.data.MangaId
 import okhttp3.HttpUrl
 
 data class DownloadableMangaPage(
-  val extensionId: ExtensionId,
-  val mangaId: MangaId,
-  val chapterId: MangaChapterId,
+  val mangaChapterDescriptor: MangaChapterDescriptor,
   val pageFileName: String,
   val pageFileSize: Long,
   val url: HttpUrl,
@@ -19,6 +18,12 @@ data class DownloadableMangaPage(
   // For next chapter preloading
   val nextChapterId: MangaChapterId?
 ) {
+  val extensionId: ExtensionId
+    get() = mangaChapterDescriptor.mangaDescriptor.extensionId
+  val mangaId: MangaId
+    get() = mangaChapterDescriptor.mangaDescriptor.mangaId
+  val mangaChapterId: MangaChapterId
+    get() = mangaChapterDescriptor.mangaChapterId
 
   fun sliceNextPages(count: Int): List<Int> {
     val start = currentPage + 1
@@ -28,7 +33,7 @@ data class DownloadableMangaPage(
   }
 
   fun debugDownloadableMangaPageId(): String {
-    return "E:${extensionId.id}-M:${mangaId.id}-C:${chapterId.id}-(cp:${currentPage}/pc:${pageCount})-(${url}/${pageFileName})"
+    return "E:${extensionId.id}-M:${mangaId.id}-C:${mangaChapterId.id}-(cp:${currentPage}/pc:${pageCount})-(${url}/${pageFileName})"
   }
 
 }

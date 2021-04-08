@@ -8,7 +8,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.core.data_structure.AsyncData
-import com.github.mangaloid.client.core.extension.ExtensionId
+import com.github.mangaloid.client.model.data.ExtensionId
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.ui.widget.manga.MangaFullSizeTextWidget
 import com.github.mangaloid.client.ui.widget.manga.MangaErrorWidget
@@ -17,7 +17,11 @@ import com.github.mangaloid.client.ui.widget.manga.MangaProgressWidget
 import kotlinx.coroutines.flow.collect
 
 @Composable
-fun MangaSearchScreen(extensionId: ExtensionId, searchQuery: String, onMangaClicked: (Manga) -> Unit) {
+fun MangaSearchScreen(
+  extensionId: ExtensionId,
+  searchQuery: String,
+  onMangaClicked: (Manga) -> Unit
+) {
   val mangaSearchScreenViewModel = viewModel<MangaSearchScreenViewModel>()
 
   if (searchQuery.length < AppConstants.minSearchQueryLength) {

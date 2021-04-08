@@ -18,11 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.data_structure.AsyncData
-import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.model.data.Manga
-import com.github.mangaloid.client.model.data.MangaChapter
-import com.github.mangaloid.client.model.data.MangaChapterId
-import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.ui.widget.manga.MangaErrorWidget
 import com.github.mangaloid.client.ui.widget.manga.MangaProgressWidget
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
@@ -34,14 +30,13 @@ import com.google.accompanist.coil.CoilImage
 
 @Composable
 fun ChaptersScreen(
-  extensionId: ExtensionId,
-  mangaId: MangaId,
+  mangaDescriptor: MangaDescriptor,
   toolbarViewModel: MangaloidToolbarViewModel,
-  onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
+  onMangaChapterClicked: (MangaChapterDescriptor) -> Unit
 ) {
   val chaptersScreenViewModel: ChaptersScreenViewModel = viewModel(
-    key = "chapters_screen_view_model_${extensionId.id}_${mangaId.id}",
-    factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(extensionId = extensionId, mangaId = mangaId) }
+    key = "chapters_screen_view_model_${mangaDescriptor}",
+    factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(mangaDescriptor) }
   )
   val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
 
@@ -70,7 +65,7 @@ fun ChaptersScreen(
   }
 
   if (!currentManga.hasChapters()) {
-    ChaptersScreenEmptyContent(mangaId, toolbarViewModel)
+    ChaptersScreenEmptyContent(mangaDescriptor, toolbarViewModel)
     return
   }
 
@@ -87,7 +82,7 @@ private fun ChaptersScreenContent(
   manga: Manga,
   searchQuery: String?,
   toolbarViewModel: MangaloidToolbarViewModel,
-  onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
+  onMangaChapterClicked: (MangaChapterDescriptor) -> Unit
 ) {
   if (searchQuery == null) {
     toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga) }
@@ -110,7 +105,6 @@ private fun ChaptersScreenContent(
           ?: return@items
 
         MangaChapterItem(
-          manga = manga,
           mangaChapter = mangaChapter,
           searchQuery = searchQuery,
           onMangaChapterClicked = onMangaChapterClicked
@@ -168,7 +162,7 @@ fun ChaptersScreenHeader(manga: Manga) {
 
 @Composable
 private fun ChaptersScreenEmptyContent(
-  mangaId: MangaId,
+  mangaDescriptor: MangaDescriptor,
   toolbarViewModel: MangaloidToolbarViewModel
 ) {
   val toolbarMessage = stringResource(R.string.no_manga_chapters_found)
@@ -182,7 +176,7 @@ private fun ChaptersScreenEmptyContent(
 
   Box(modifier = Modifier.fillMaxSize()) {
     Text(
-      text = stringResource(R.string.no_chapters_found_for_manga, mangaId.id),
+      text = stringResource(R.string.no_chapters_found_for_manga, mangaDescriptor.mangaId.id),
       modifier = Modifier.align(Alignment.Center)
     )
   }
@@ -190,17 +184,16 @@ private fun ChaptersScreenEmptyContent(
 
 @Composable
 private fun MangaChapterItem(
-  manga: Manga,
   mangaChapter: MangaChapter,
   searchQuery: String?,
-  onMangaChapterClicked: (MangaId, MangaChapterId) -> Unit
+  onMangaChapterClicked: (MangaChapterDescriptor) -> Unit
 ) {
   Row(
     modifier = Modifier
       .fillMaxWidth()
       .height(128.dp)
       .padding(4.dp)
-      .clickable { onMangaChapterClicked(manga.mangaId, mangaChapter.chapterId) }
+      .clickable { onMangaChapterClicked(mangaChapter.mangaChapterDescriptor) }
   ) {
     Spacer(modifier = Modifier.width(8.dp))
 

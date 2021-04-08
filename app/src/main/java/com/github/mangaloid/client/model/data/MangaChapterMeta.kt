@@ -3,7 +3,7 @@ package com.github.mangaloid.client.model.data
 import com.github.mangaloid.client.core.settings.enums.SwipeDirection
 
 data class MangaChapterMeta(
-  val chapterId: MangaChapterId,
+  val mangaChapterDescriptor: MangaChapterDescriptor,
   var lastViewedPageIndex: LastViewedPageIndex? = null
 )
 

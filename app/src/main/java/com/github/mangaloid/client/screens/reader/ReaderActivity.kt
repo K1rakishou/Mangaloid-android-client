@@ -8,9 +8,7 @@ import androidx.activity.viewModels
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.MangaloidCoroutineScope
 import com.github.mangaloid.client.core.data_structure.AsyncData
-import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.model.data.MangaChapterId
-import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.model.data.MangaChapterDescriptor
 import com.github.mangaloid.client.util.FullScreenUtils.hideSystemUI
 import com.github.mangaloid.client.util.FullScreenUtils.setupFullscreen
 import com.github.mangaloid.client.util.FullScreenUtils.toggleSystemUI
@@ -25,23 +23,9 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    val extensionId = ExtensionId.fromRawValueOrNull(intent.getIntExtra(ExtensionId.EXTENSION_ID_KEY, -1))
-    if (extensionId == null) {
-      Logger.e(TAG, "onCreate() Bad ${ExtensionId.EXTENSION_ID_KEY} parameter")
-      finish()
-      return
-    }
-
-    val mangaId = MangaId.fromRawValueOrNull(intent.getIntExtra(MangaId.MANGA_ID_KEY, -1))
-    if (mangaId == null) {
-      Logger.e(TAG, "onCreate() Bad ${MangaId.MANGA_ID_KEY} parameter")
-      finish()
-      return
-    }
-
-    val mangaChapterId = MangaChapterId.fromRawValueOrNull(intent.getIntExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, -1))
-    if (mangaChapterId == null) {
-      Logger.e(TAG, "onCreate() Bad ${MangaChapterId.MANGA_CHAPTER_ID_KEY} parameter")
+    val mangaChapterDescriptor = intent.getParcelableExtra<MangaChapterDescriptor>(MangaChapterDescriptor.KEY)
+    if (mangaChapterDescriptor == null) {
+      Logger.e(TAG, "onCreate() Bad ${MangaChapterDescriptor.KEY} parameter")
       finish()
       return
     }
@@ -56,11 +40,7 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
     val readScreenViewModel by viewModels<ReaderScreenViewModel>(
       factoryProducer = {
         viewModelProviderFactoryOf {
-          ReaderScreenViewModel(
-            extensionId = extensionId,
-            mangaId = mangaId,
-            initialMangaChapterId = mangaChapterId
-          )
+          ReaderScreenViewModel(initialMangaChapterDescriptor = mangaChapterDescriptor)
         }
       }
     )
@@ -110,14 +90,10 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
 
     fun launch(
       context: Context,
-      extensionId: ExtensionId,
-      mangaId: MangaId,
-      mangaChapterId: MangaChapterId
+      mangaChapterDescriptor: MangaChapterDescriptor
     ) {
       val intent = Intent(context, ReaderActivity::class.java)
-      intent.putExtra(ExtensionId.EXTENSION_ID_KEY, extensionId.id)
-      intent.putExtra(MangaId.MANGA_ID_KEY, mangaId.id)
-      intent.putExtra(MangaChapterId.MANGA_CHAPTER_ID_KEY, mangaChapterId.id)
+      intent.putExtra(MangaChapterDescriptor.KEY, mangaChapterDescriptor)
 
       context.startActivity(intent)
     }

@@ -1,11 +1,7 @@
 package com.github.mangaloid.client.model.cache
 
 import androidx.annotation.GuardedBy
-import com.github.mangaloid.client.core.extension.ExtensionId
-import com.github.mangaloid.client.model.data.Manga
-import com.github.mangaloid.client.model.data.MangaChapter
-import com.github.mangaloid.client.model.data.MangaChapterId
-import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.util.mutableMapWithCap
 import com.github.mangaloid.client.util.putIfNotExists
 import kotlinx.coroutines.sync.Mutex
@@ -33,13 +29,19 @@ class MangaCache {
     }
   }
 
+  suspend fun replaceMangaChapters(mangaDescriptor: MangaDescriptor, mangaChapters: List<MangaChapter>) {
+    replaceMangaChapters(mangaDescriptor.extensionId, mangaDescriptor.mangaId, mangaChapters)
+  }
+
   suspend fun replaceMangaChapters(extensionId: ExtensionId, mangaId: MangaId, mangaChapters: List<MangaChapter>) {
     if (mangaChapters.isEmpty()) {
       return
     }
 
     mutex.withLock {
-      mangaCache[extensionId]?.get(mangaId)?.replaceChapters(mangaChapters)
+      mangaCache[extensionId]
+        ?.get(mangaId)
+        ?.replaceChapters(mangaChapters)
     }
   }
 
@@ -49,19 +51,15 @@ class MangaCache {
     }
   }
 
-  suspend fun getManga(extensionId: ExtensionId, mangaId: MangaId): Manga? {
-    return mutex.withLock { mangaCache.get(extensionId)?.get(mangaId) }
+  suspend fun getManga(mangaDescriptor: MangaDescriptor): Manga? {
+    return mutex.withLock { mangaCache.get(mangaDescriptor.extensionId)?.get(mangaDescriptor.mangaId) }
   }
 
-  suspend fun getChapter(
-    extensionId: ExtensionId,
-    mangaId: MangaId,
-    mangaChapterId: MangaChapterId
-  ): MangaChapter? {
+  suspend fun getChapter(mangaChapterDescriptor: MangaChapterDescriptor): MangaChapter? {
     return mutex.withLock {
-      return@withLock mangaCache.get(extensionId)
-        ?.get(mangaId)
-        ?.getChapterByChapterId(mangaChapterId)
+      return@withLock mangaCache.get(mangaChapterDescriptor.extensionId)
+        ?.get(mangaChapterDescriptor.mangaId)
+        ?.getChapterByChapterId(mangaChapterDescriptor.mangaChapterId)
     }
   }
 

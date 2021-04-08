@@ -1,14 +1,10 @@
 package com.github.mangaloid.client.model.repository
 
 import com.github.mangaloid.client.core.data_structure.ModularResult
-import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
 import com.github.mangaloid.client.core.extension.MangaExtensionManager
 import com.github.mangaloid.client.model.cache.MangaCache
-import com.github.mangaloid.client.model.data.Manga
-import com.github.mangaloid.client.model.data.MangaChapter
-import com.github.mangaloid.client.model.data.MangaChapterId
-import com.github.mangaloid.client.model.data.MangaId
+import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.util.Logger
 
 class MangaRepository(
@@ -45,31 +41,27 @@ class MangaRepository(
     }
   }
 
-  suspend fun getMangaChapterById(
-    extensionId: ExtensionId,
-    mangaId: MangaId,
-    mangaChapterId: MangaChapterId
-  ): ModularResult<MangaChapter> {
+  suspend fun getMangaChapter(mangaChapterDescriptor: MangaChapterDescriptor): ModularResult<MangaChapter> {
     return repoAsync {
-      Logger.d(TAG, "getMangaChapterById(extensionId=${extensionId.id}, mangaId=${mangaId.id}, mangaChapterId=${mangaChapterId.id})")
+      Logger.d(TAG, "getMangaChapterById(mangaChapterDescriptor=$mangaChapterDescriptor)")
 
       return@repoAsync ModularResult.Try {
-        var chapterFromCache = mangaCache.getChapter(extensionId, mangaId, mangaChapterId)
+        var chapterFromCache = mangaCache.getChapter(mangaChapterDescriptor)
         if (chapterFromCache != null) {
           if (!chapterFromCache.needChapterPagesUpdate()) {
             return@Try chapterFromCache
           }
 
-          return@Try refreshMangaChapterPagesIfNeeded(extensionId, chapterFromCache)
+          return@Try refreshMangaChapterPagesIfNeeded(mangaChapterDescriptor.extensionId, chapterFromCache)
             .unwrap()
         }
 
-        getMangaByMangaId(extensionId, mangaId)
+        getManga(mangaChapterDescriptor.mangaDescriptor)
           .unwrap()
 
-        chapterFromCache = mangaCache.getChapter(extensionId, mangaId, mangaChapterId)
+        chapterFromCache = mangaCache.getChapter(mangaChapterDescriptor)
         if (chapterFromCache == null) {
-          throw MangaChapterNotFound(extensionId, mangaId, mangaChapterId)
+          throw MangaChapterNotFound(mangaChapterDescriptor)
         }
 
         return@Try chapterFromCache
@@ -77,17 +69,18 @@ class MangaRepository(
     }
   }
 
-  suspend fun getMangaByMangaId(extensionId: ExtensionId, mangaId: MangaId): ModularResult<Manga?> {
+  suspend fun getManga(mangaDescriptor: MangaDescriptor): ModularResult<Manga?> {
     return repoAsync {
-      Logger.d(TAG, "getMangaByMangaId(extensionId=${extensionId.id}, mangaId=${mangaId.id})")
+      Logger.d(TAG, "getManga(mangaDescriptor=$mangaDescriptor)")
 
-      val fromCache = mangaCache.getManga(extensionId, mangaId)
+      val fromCache = mangaCache.getManga(mangaDescriptor)
       if (fromCache != null) {
-        return@repoAsync refreshMangaThumbnailsIfNeeded(extensionId, fromCache)
+        return@repoAsync refreshMangaChaptersIfNeeded(mangaDescriptor.extensionId, fromCache)
       }
 
-      val mangaLoadedFromServerResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
-        .getManga(mangaId)
+      val mangaLoadedFromServerResult =
+        mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(mangaDescriptor.extensionId)
+          .getManga(mangaDescriptor.mangaId)
 
       if (mangaLoadedFromServerResult is ModularResult.Error) {
         return@repoAsync ModularResult.error(mangaLoadedFromServerResult.error)
@@ -96,19 +89,19 @@ class MangaRepository(
       val manga = (mangaLoadedFromServerResult as ModularResult.Value).value
         ?: return@repoAsync ModularResult.value(null)
 
-      mangaCache.put(extensionId, manga)
+      mangaCache.put(mangaDescriptor.extensionId, manga)
 
       return@repoAsync ModularResult.value(manga)
     }
   }
 
-  suspend fun refreshMangaThumbnailsIfNeeded(extensionId: ExtensionId, manga: Manga): ModularResult<Manga?> {
+  suspend fun refreshMangaChaptersIfNeeded(extensionId: ExtensionId, manga: Manga): ModularResult<Manga?> {
     return repoAsync {
       if (!manga.needChaptersUpdate()) {
         return@repoAsync ModularResult.value(manga)
       }
 
-      Logger.d(TAG, "refreshMangaThumbnailsIfNeeded(extensionId=${extensionId.id}, mangaId=${manga.mangaId.id})")
+      Logger.d(TAG, "refreshMangaChapters(extensionId=${extensionId.id}, mangaId=${manga.mangaId.id})")
 
       val chaptersResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
         .getMangaChapters(manga.mangaId)
@@ -160,21 +153,21 @@ class MangaRepository(
     }
   }
 
+  suspend fun updateMangaChapterMeta(mangaChapterMeta: MangaChapterMeta) {
+    // TODO: 4/8/2021
+  }
+
   class MangaNotFound(
-    extensionId: ExtensionId,
-    mangaId: MangaId
-  ) : Exception("Manga not found. (extensionId=${extensionId.id}, mangaId=${mangaId.id})")
+    mangaDescriptor: MangaDescriptor
+  ) : Exception("Manga not found. (mangaDescriptor=$mangaDescriptor)")
 
   class MangaHasNoChapters(
-    extensionId: ExtensionId,
-    mangaId: MangaId
-  ) : Exception("Manga has no chapters. (extensionId=${extensionId.id}, mangaId=${mangaId.id})")
+    mangaDescriptor: MangaDescriptor
+  ) : Exception("Manga has no chapters. (mangaDescriptor=$mangaDescriptor)")
 
   class MangaChapterNotFound(
-    extensionId: ExtensionId,
-    mangaId: MangaId,
-    mangaChapterId: MangaChapterId
-  ) : Exception("Manga chapter not found. (extensionId=${extensionId.id}, mangaId=${mangaId.id}, mangaChapterId=${mangaChapterId.id})")
+    mangaChapterDescriptor: MangaChapterDescriptor
+  ) : Exception("Manga chapter not found. (mangaChapterDescriptor=$mangaChapterDescriptor)")
 
   companion object {
     private const val TAG = "MangaRepository"

@@ -1,10 +1,23 @@
 package com.github.mangaloid.client.model.data
 
+
+enum class ExtensionId(val id: Int) {
+  Mangaloid(0);
+
+  companion object {
+    fun fromRawValueOrNull(rawId: Int?): ExtensionId? {
+      if (rawId == null || rawId < 0) {
+        return null
+      }
+
+      return values().firstOrNull { extensionId -> extensionId.id == rawId }
+    }
+  }
+}
+
 inline class MangaId(val id: Int) {
 
   companion object {
-    const val MANGA_ID_KEY = "manga_id"
-
     fun fromRawValueOrNull(value: Int?): MangaId? {
       if (value == null || value < 0) {
         return null
@@ -17,8 +30,6 @@ inline class MangaId(val id: Int) {
 
 inline class MangaChapterId(val id: Int) {
   companion object {
-    const val MANGA_CHAPTER_ID_KEY = "manga_chapter_id"
-
     fun fromRawValueOrNull(value: Int?): MangaChapterId? {
       if (value == null || value < 0) {
         return null

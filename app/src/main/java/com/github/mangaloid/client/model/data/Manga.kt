@@ -1,14 +1,12 @@
 package com.github.mangaloid.client.model.data
 
-import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.util.mutableListWithCap
 import okhttp3.HttpUrl
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 data class Manga(
-  val extensionId: ExtensionId,
-  val mangaId: MangaId,
+  val mangaDescriptor: MangaDescriptor,
   val mangaContentType: MangaContentType,
   val titles: List<String>,
   val description: String?,
@@ -24,6 +22,11 @@ data class Manga(
 ) {
   private val chapters = mutableListWithCap<MangaChapter>(16)
   private val lastChaptersUpdateTime = AtomicLong(0)
+
+  val extensionId: ExtensionId
+    get() = mangaDescriptor.extensionId
+  val mangaId: MangaId
+    get() = mangaDescriptor.mangaId
 
   val fullTitlesString by lazy { titles.joinToString() }
   val fullArtistString by lazy { artists.joinToString() }

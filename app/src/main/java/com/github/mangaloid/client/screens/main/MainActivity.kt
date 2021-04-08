@@ -12,7 +12,6 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
-import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.helper.LocalBackPressedDispatcher
 import com.github.mangaloid.client.ui.theme.MangaloidclientTheme
 import dev.chrisbanes.accompanist.insets.ProvideWindowInsets

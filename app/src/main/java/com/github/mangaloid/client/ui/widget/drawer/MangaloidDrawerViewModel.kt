@@ -4,9 +4,9 @@ import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.ViewModelWithState
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
-import com.github.mangaloid.client.core.extension.ExtensionId
 import com.github.mangaloid.client.core.extension.MangaExtensionManager
 import com.github.mangaloid.client.di.DependenciesGraph
+import com.github.mangaloid.client.model.data.ExtensionId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
