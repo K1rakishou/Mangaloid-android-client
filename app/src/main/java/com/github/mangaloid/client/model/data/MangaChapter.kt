@@ -72,15 +72,7 @@ data class MangaChapter(
   }
 
   fun formatDate(): String {
-    return "Date: ${MANGA_CHAPTER_DATE_FORMATTER.print(dateAdded)}"
-  }
-
-  fun formatGroup(): String {
-    return "TL Group: ${groupId}"
-  }
-
-  fun formatPages(): String {
-    return "Page count: ${pageCount}"
+    return MANGA_CHAPTER_DATE_FORMATTER.print(dateAdded)
   }
 
   companion object {

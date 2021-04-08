@@ -32,9 +32,6 @@ import com.github.mangaloid.client.util.StringSpanUtils
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
 
-private const val HEADER_INDEX = 0
-private const val ADDITIONAL_ITEMS_COUNT = 1 // header
-
 @Composable
 fun ChaptersScreen(
   extensionId: ExtensionId,
@@ -98,20 +95,26 @@ private fun ChaptersScreenContent(
 
   Column(modifier = Modifier.fillMaxSize()) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-      items(manga.chaptersCount() + ADDITIONAL_ITEMS_COUNT) { index ->
-        when (index) {
-          HEADER_INDEX -> {
-            ChaptersScreenHeader(manga)
-          }
-          else -> {
-            MangaChapterItem(
-              manga = manga,
-              mangaChapter = manga.getChapterByIndex(index),
-              searchQuery = searchQuery,
-              onMangaChapterClicked = onMangaChapterClicked
-            )
-          }
+      item("HEADER") {
+        ChaptersScreenHeader(manga)
+      }
+
+      items(
+        count = manga.chaptersCount(),
+        key = { index ->
+          val mangaChapter = manga.getChapterByIndexReversed(index)!!
+          return@items "MANGA_CHAPTER_${mangaChapter.chapterId.id}"
         }
+      ) { index ->
+        val mangaChapter = manga.getChapterByIndexReversed(index)
+          ?: return@items
+
+        MangaChapterItem(
+          manga = manga,
+          mangaChapter = mangaChapter,
+          searchQuery = searchQuery,
+          onMangaChapterClicked = onMangaChapterClicked
+        )
       }
     }
   }
@@ -119,31 +122,46 @@ private fun ChaptersScreenContent(
 
 @Composable
 fun ChaptersScreenHeader(manga: Manga) {
-  Row(
+  val heightModifier = if (manga.description != null && manga.description.isNotEmpty()) {
+    Modifier.height(500.dp)
+  } else {
+    Modifier.wrapContentHeight()
+  }
+
+  Column(
     modifier = Modifier
       .fillMaxWidth()
-      .height(240.dp)
+      .then(heightModifier)
       .padding(4.dp)
   ) {
+    Row(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
+      CoilImage(
+        data = manga.coverThumbnailUrl(),
+        contentDescription = null,
+        contentScale = ContentScale.FillBounds,
+        modifier = Modifier.width(96.dp).height(192.dp)
+      )
 
-    CoilImage(
-      data = manga.coverThumbnailUrl(),
-      contentDescription = null,
-      contentScale = ContentScale.FillBounds,
-      modifier = Modifier.aspectRatio(0.5f)
-    )
+      Spacer(modifier = Modifier.width(8.dp))
 
-    Spacer(modifier = Modifier.width(8.dp))
+      Column(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
+        Text(text = manga.fullTitlesString, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
+        Text(text = stringResource(R.string.manga_type, manga.mangaContentType.type), fontSize = 14.sp)
+        Text(text = stringResource(R.string.manga_country, manga.countryOfOrigin), fontSize = 14.sp)
+        Text(text = stringResource(R.string.manga_artist, manga.fullArtistString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
+        Text(text = stringResource(R.string.manga_author, manga.fullAuthorsString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
+        Text(text = stringResource(R.string.manga_genre, manga.fullGenresString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
+        Text(text = stringResource(R.string.manga_publication_status, manga.publicationStatus), fontSize = 14.sp)
+        Text(text = stringResource(R.string.manga_chapters, manga.chaptersCount()), fontSize = 14.sp)
+      }
+    }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-      Text(text = manga.fullTitlesString, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
-      Text(text = stringResource(R.string.manga_type, manga.mangaContentType.type), fontSize = 14.sp)
-      Text(text = stringResource(R.string.manga_country, manga.countryOfOrigin), fontSize = 14.sp)
-      Text(text = stringResource(R.string.manga_artist, manga.fullArtistString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
-      Text(text = stringResource(R.string.manga_author, manga.fullAuthorsString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
-      Text(text = stringResource(R.string.manga_genre, manga.fullGenresString), overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
-      Text(text = stringResource(R.string.manga_publication_status, manga.publicationStatus), fontSize = 14.sp)
-      Text(text = stringResource(R.string.manga_chapters, manga.chaptersCount()), fontSize = 14.sp)
+    manga.description?.let { description ->
+      Text(
+        text = description,
+        modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+        overflow = TextOverflow.Ellipsis
+      )
     }
   }
 }
@@ -197,8 +215,18 @@ private fun MangaChapterItem(
           .wrapContentHeight()
       )
 
+      mangaChapter.groupId?.let { groupId ->
+        Text(
+          text = stringResource(id = R.string.manga_chapter_group_id, groupId),
+          fontSize = 14.sp,
+          modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+        )
+      }
+
       Text(
-        text = mangaChapter.formatGroup(),
+        text = stringResource(id = R.string.manga_chapter_page_count, mangaChapter.pageCount),
         fontSize = 14.sp,
         modifier = Modifier
           .fillMaxWidth()
@@ -206,15 +234,7 @@ private fun MangaChapterItem(
       )
 
       Text(
-        text = mangaChapter.formatPages(),
-        fontSize = 14.sp,
-        modifier = Modifier
-          .fillMaxWidth()
-          .wrapContentHeight()
-      )
-
-      Text(
-        text = mangaChapter.formatDate(),
+        text = stringResource(id = R.string.manga_chapter_date_added, mangaChapter.formatDate()),
         fontSize = 14.sp,
         modifier = Modifier
           .fillMaxWidth()

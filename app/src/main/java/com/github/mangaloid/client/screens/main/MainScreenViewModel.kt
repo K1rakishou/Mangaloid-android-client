@@ -33,24 +33,6 @@ class MainScreenViewModel(
     }
   }
 
-  private fun debugDumpLoadedMangaInfo(mangaList: List<Manga>): String {
-    if (!AppConstants.isDevBuild()) {
-      return "<Not a dev build>"
-    }
-
-    return buildString(128) {
-      appendLine()
-
-      mangaList.forEach { manga ->
-        appendLine("--- Manga ${manga.mangaId.id} START ---")
-        append(manga.toDebugString())
-        appendLine("--- Manga ${manga.mangaId.id} END ---")
-      }
-
-      appendLine()
-    }
-  }
-
   data class MainScreenState(
     val initialLoadState: AsyncData<List<Manga>> = AsyncData.NotInitialized()
   )

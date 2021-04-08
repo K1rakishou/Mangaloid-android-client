@@ -11,6 +11,7 @@ data class Manga(
   val mangaId: MangaId,
   val mangaContentType: MangaContentType,
   val titles: List<String>,
+  val description: String?,
   val artists: List<String>,
   val authors: List<String>,
   val genres: List<String>,
@@ -61,8 +62,8 @@ data class Manga(
   }
 
   @Synchronized
-  fun getChapterByIndex(index: Int): MangaChapter {
-    return chapters.get(index)
+  fun getChapterByIndexReversed(index: Int): MangaChapter? {
+    return chapters.getOrNull(chapters.lastIndex - index)
   }
 
   @Synchronized
@@ -88,32 +89,6 @@ data class Manga(
     return coversUrl.newBuilder()
       .addEncodedQueryParameter("id", mangaId.id.toString())
       .build()
-  }
-
-  fun toDebugString(): String {
-    return buildString {
-      append("mangaId: ")
-      append(mangaId.id)
-
-      titles.firstOrNull()?.let { title ->
-        append(", title: ")
-        append(title)
-      }
-
-      appendLine()
-
-      if (chapters.isNotEmpty()) {
-        chapters.forEachIndexed { index, chapter ->
-          if (index == chapters.lastIndex) {
-            appendLine("Chapter $index: $chapter")
-          } else {
-            append("Chapter $index: $chapter")
-          }
-        }
-      } else {
-        append("No chapters!")
-      }
-    }
   }
 
   companion object {

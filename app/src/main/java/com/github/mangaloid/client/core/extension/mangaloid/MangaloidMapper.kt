@@ -24,6 +24,7 @@ object MangaloidMapper {
       mangaId = mangaId,
       mangaContentType = MangaContentType.fromRawValue(mangaRemote.type),
       titles = mangaRemote.titles,
+      description = null,
       artists = mangaRemote.artists,
       authors = mangaRemote.authors,
       genres = mangaRemote.genres,

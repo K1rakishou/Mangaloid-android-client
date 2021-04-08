@@ -72,8 +72,6 @@ fun MangaItemListWidget(
       .fillMaxSize()
       .imePadding()
   ) {
-    // TODO: 3/29/2021: add search bar
-
     items(mainPageMangaList.size) { index ->
       MangaItemWidget(mainPageMangaList[index], searchQuery, onMangaClicked)
     }

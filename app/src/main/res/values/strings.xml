@@ -38,4 +38,8 @@ There are many variations of passages of Lorem Ipsum available, but the majority
     <string name="manga_author">Author: %1$s</string>
     <string name="manga_genre">Genre: %1$s</string>
     <string name="manga_publication_status">Publication status: %1$s</string>
+
+    <string name="manga_chapter_date_added">Date: %1$s</string>
+    <string name="manga_chapter_group_id">TL Group: %1$d</string>
+    <string name="manga_chapter_page_count">Page count: %1$d</string>
 </resources>
