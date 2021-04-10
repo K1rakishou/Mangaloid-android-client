@@ -270,12 +270,19 @@ private fun MangaChapterItem(
           .wrapContentHeight()
       )
 
-      if (lastReadPageIndex >= 0) {
-        if (completedRead) {
-          Text(text = "Completed")
+      if (lastReadPageIndex > 0) {
+        val text = if (completedRead) {
+          stringResource(id = R.string.manga_chapter_complete_reading)
         } else {
-          Text(text = "Reading ${lastReadPageIndex}/${totalPagesCount}")
+          stringResource(id = R.string.manga_chapter_complete_reading, lastReadPageIndex, totalPagesCount)
         }
+
+        Text(
+          text = text, fontSize = 14.sp,
+          modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+        )
       }
     }
   }

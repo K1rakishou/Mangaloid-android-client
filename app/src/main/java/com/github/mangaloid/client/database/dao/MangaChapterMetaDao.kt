@@ -31,20 +31,20 @@ abstract class MangaChapterMetaDao {
     SELECT *
     FROM ${MangaChapterMetaEntity.TABLE_NAME}
     WHERE 
-        ${MangaChapterMetaEntity.COLUMN_OWNER_MANGA_META_ID} = :mangaId
+        ${MangaChapterMetaEntity.COLUMN_OWNER_MANGA_META_ID} = :ownerMangaMetaId
     AND
         ${MangaChapterMetaEntity.COLUMN_MANGA_CHAPTER_ID} = :mangaChapterId
   """)
-  abstract suspend fun selectById(mangaId: Long, mangaChapterId: Long): MangaChapterMetaEntity?
+  abstract suspend fun selectById(ownerMangaMetaId: Long, mangaChapterId: Long): MangaChapterMetaEntity?
 
   @Query("""
     SELECT *
     FROM ${MangaChapterMetaEntity.TABLE_NAME}
     WHERE 
-        ${MangaChapterMetaEntity.COLUMN_OWNER_MANGA_META_ID} = :mangaId
+        ${MangaChapterMetaEntity.COLUMN_OWNER_MANGA_META_ID} = :ownerMangaMetaId
     AND
         ${MangaChapterMetaEntity.COLUMN_MANGA_CHAPTER_ID} IN (:mangaChapterIds)
   """)
-  abstract suspend fun selectByIdMany(mangaId: Long, mangaChapterIds: Collection<Long>): List<MangaChapterMetaEntity>
+  abstract suspend fun selectByIdMany(ownerMangaMetaId: Long, mangaChapterIds: Collection<Long>): List<MangaChapterMetaEntity>
 
 }

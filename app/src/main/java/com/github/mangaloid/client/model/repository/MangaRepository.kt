@@ -187,7 +187,7 @@ class MangaRepository(
 
         val mangaChapters = (chaptersResult as ModularResult.Value).value
         mangaCache.replaceMangaChapters(extensionId, manga.mangaId, mangaChapters)
-        preloadMangaChapterMeta(manga.mangaId, mangaChapters)
+        preloadMangaChapterMeta(manga.mangaDescriptor, mangaChapters)
 
         Logger.d(TAG, "refreshMangaChaptersIfNeeded(extensionId=${extensionId.id}, mangaId=${manga.mangaId.id}) success")
         return@Try manga
@@ -314,7 +314,13 @@ class MangaRepository(
         Logger.d(TAG, "createDefaultMangaMetaInTheDatabaseIfNeeded()")
 
         val mangaMeta = mangaloidDatabase.mangaMetaDao().selectById(extensionId.id, mangaId.id)
-          ?.let { mangaMetaEntity -> MangaMeta(mangaMetaEntity.id, mangaDescriptor, mangaMetaEntity.bookmarked) }
+          ?.let { mangaMetaEntity ->
+            return@let MangaMeta(
+              databaseId = mangaMetaEntity.id,
+              mangaDescriptor = mangaDescriptor,
+              bookmarked = mangaMetaEntity.bookmarked
+            )
+          }
 
         if (mangaMeta != null) {
           mangaCache.putMangaMeta(mangaMeta)
@@ -381,15 +387,21 @@ class MangaRepository(
   }
 
   suspend fun preloadMangaChapterMeta(
-    mangaId: MangaId,
+    mangaDescriptor: MangaDescriptor,
     mangaChapterList: List<MangaChapter>
   ) {
     if (mangaCache.allMangaChapterMetaPreloaded(mangaChapterList)) {
       return
     }
 
+    val mangaMetaDatabaseId = mangaCache.getMangaMeta(mangaDescriptor)?.databaseId
+    checkNotNull(mangaMetaDatabaseId) { "Whoops, forgot to preload it first!" }
+
     val mangaChapterIds = mangaChapterList.map { mangaChapter -> mangaChapter.chapterId.id }
-    val mangaChapterMetaEntityList = mangaloidDatabase.mangaChapterMetaDao().selectByIdMany(mangaId.id, mangaChapterIds)
+    val mangaChapterMetaEntityList = mangaloidDatabase.mangaChapterMetaDao().selectByIdMany(
+      ownerMangaMetaId = mangaMetaDatabaseId,
+      mangaChapterIds = mangaChapterIds
+    )
 
     mangaChapterList.forEach { mangaChapter ->
       if (mangaCache.containsMangaChapterMeta(mangaChapter.mangaChapterDescriptor)) {
