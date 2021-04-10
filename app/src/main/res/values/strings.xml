@@ -42,6 +42,6 @@ There are many variations of passages of Lorem Ipsum available, but the majority
     <string name="manga_chapter_date_added">Date: %1$s</string>
     <string name="manga_chapter_group_id">TL Group: %1$d</string>
     <string name="manga_chapter_page_count">Page count: %1$d</string>
-    <string name="manga_chapter_reading">Reading %1$d/%2$d</string>
-    <string name="manga_chapter_complete_reading">Completed</string>
+    <string name="manga_chapter_status_reading">Reading %1$d/%2$d</string>
+    <string name="manga_chapter_status_completed">Completed</string>
 </resources>

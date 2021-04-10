@@ -224,7 +224,7 @@ private fun MangaChapterItem(
   Row(
     modifier = Modifier
       .fillMaxWidth()
-      .height(128.dp)
+      .height(96.dp)
       .padding(4.dp)
       .graphicsLayer { alpha = mangaChapterItemAlpha }
       .clickable { onMangaChapterClicked(mangaChapter.mangaChapterDescriptor) }
@@ -272,9 +272,9 @@ private fun MangaChapterItem(
 
       if (lastReadPageIndex > 0) {
         val text = if (completedRead) {
-          stringResource(id = R.string.manga_chapter_complete_reading)
+          stringResource(id = R.string.manga_chapter_status_completed)
         } else {
-          stringResource(id = R.string.manga_chapter_complete_reading, lastReadPageIndex, totalPagesCount)
+          stringResource(id = R.string.manga_chapter_status_reading, lastReadPageIndex, totalPagesCount)
         }
 
         Text(

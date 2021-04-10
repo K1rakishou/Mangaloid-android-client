@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyVerticalGrid
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -98,7 +99,9 @@ fun MangaItemWidget(manga: Manga, searchQuery: String?, onMangaClicked: (Manga) 
     Spacer(modifier = Modifier.width(8.dp))
 
     Column(modifier = Modifier.fillMaxWidth()) {
-      val annotatedTitle = StringSpanUtils.annotateString(manga.fullTitlesString, searchQuery)
+      val annotatedTitle = remember(key1 = searchQuery) {
+        StringSpanUtils.annotateString(manga.fullTitlesString, searchQuery)
+      }
 
       Text(
         text = annotatedTitle,
