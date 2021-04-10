@@ -1,11 +1,11 @@
 package com.github.mangaloid.client.model.data
 
 
-enum class ExtensionId(val id: Int) {
+enum class ExtensionId(val id: Long) {
   Mangaloid(0);
 
   companion object {
-    fun fromRawValueOrNull(rawId: Int?): ExtensionId? {
+    fun fromRawValueOrNull(rawId: Long?): ExtensionId? {
       if (rawId == null || rawId < 0) {
         return null
       }
@@ -15,10 +15,10 @@ enum class ExtensionId(val id: Int) {
   }
 }
 
-inline class MangaId(val id: Int) {
+inline class MangaId(val id: Long) {
 
   companion object {
-    fun fromRawValueOrNull(value: Int?): MangaId? {
+    fun fromRawValueOrNull(value: Long?): MangaId? {
       if (value == null || value < 0) {
         return null
       }
@@ -28,9 +28,9 @@ inline class MangaId(val id: Int) {
   }
 }
 
-inline class MangaChapterId(val id: Int) {
+inline class MangaChapterId(val id: Long) {
   companion object {
-    fun fromRawValueOrNull(value: Int?): MangaChapterId? {
+    fun fromRawValueOrNull(value: Long?): MangaChapterId? {
       if (value == null || value < 0) {
         return null
       }

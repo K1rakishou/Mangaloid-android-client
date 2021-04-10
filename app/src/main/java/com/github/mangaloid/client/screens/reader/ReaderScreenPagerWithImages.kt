@@ -14,15 +14,13 @@ import androidx.core.view.updateLayoutParams
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import com.github.mangaloid.client.R
-import com.github.mangaloid.client.core.AppConstants
-import com.github.mangaloid.client.core.settings.enums.SwipeDirection
 import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.data.LastViewedPageIndex
+import com.github.mangaloid.client.model.data.MangaChapterMeta
 import com.github.mangaloid.client.model.data.ViewableMangaChapter
 import com.github.mangaloid.client.model.data.ViewablePage
 import com.github.mangaloid.client.ui.widget.AsyncDataView
 import com.github.mangaloid.client.util.AndroidUtils
-import com.github.mangaloid.client.util.Logger
 
 class ReaderScreenPagerWithImages @JvmOverloads constructor(
   context: Context,
@@ -30,6 +28,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   defAttrStyle: Int = 0
 ) : ConstraintLayout(context, attributeSet, defAttrStyle) {
   private var readerActivityCallbacks: ReaderActivityCallbacks? = null
+  private lateinit var readerScreenViewModel: ReaderScreenViewModel
 
   private val asyncDataView = AsyncDataView(context)
 
@@ -40,14 +39,15 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   private lateinit var readerButtonContainer: CardView
 
   private val appSettings = DependenciesGraph.appSettings
-  private var currentSwipeDirection: SwipeDirection = SwipeDirection.LeftToRight
+  private var mangaChapterMeta: MangaChapterMeta? = null
 
   init {
     addView(asyncDataView, AndroidUtils.mpMpLayoutParams)
   }
 
-  fun init(readerActivityCallbacks: ReaderActivityCallbacks) {
+  fun init(readerActivityCallbacks: ReaderActivityCallbacks, readerScreenViewModel: ReaderScreenViewModel) {
     this.readerActivityCallbacks = readerActivityCallbacks
+    this.readerScreenViewModel = readerScreenViewModel
   }
 
   suspend fun onMangaLoadProgress() {
@@ -60,27 +60,32 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
     asyncDataView.onTap { onViewablePageTapped() }
   }
 
-  suspend fun onMangaLoaded(
-    lastViewedPageIndex: LastViewedPageIndex?,
-    viewableMangaChapter: ViewableMangaChapter,
-    readerScreenViewModel: ReaderScreenViewModel
-  ) {
+  suspend fun onMangaLoaded(viewableMangaChapter: ViewableMangaChapter) {
     asyncDataView.changeState(AsyncDataView.State.Success(R.layout.reader_screen_pager_with_images))
     asyncDataView.onTap(null)
 
     onMangaChapterPagesLoaded(readerScreenViewModel)
 
-    this.currentSwipeDirection = appSettings.readerSwipeDirection.get()
-    val initialMangaPageIndex = calculateInitialMangaPageIndex(lastViewedPageIndex, viewableMangaChapter)
+    this.mangaChapterMeta = readerScreenViewModel.getMangaChapterMeta(viewableMangaChapter.mangaChapterDescriptor)
+      ?: MangaChapterMeta(
+        databaseId = null,
+        mangaChapterDescriptor = viewableMangaChapter.mangaChapterDescriptor,
+        lastViewedPageIndex = LastViewedPageIndex(
+          lastViewedPageIndex = 0,
+          lastReadPageIndex = 0
+        )
+      )
 
-    updatePageIndicator(initialMangaPageIndex, viewableMangaChapter)
+    val pageIndex = viewableMangaChapter.coercePositionInActualPagesRange(
+      mangaChapterMeta!!.lastViewedPageIndex.lastViewedPageIndex
+    )
 
     val viewPagerAdapter = ViewPagerAdapter(viewableMangaChapter) { position, parent ->
       getViewInternal(position, parent, viewableMangaChapter, readerScreenViewModel)
     }
 
     viewPager.adapter = viewPagerAdapter
-    viewPager.currentItem = initialMangaPageIndex
+    viewPager.currentItem = viewableMangaChapter.pagesCount() - pageIndex - 1
   }
 
   private fun onMangaChapterPagesLoaded(readerScreenViewModel: ReaderScreenViewModel) {
@@ -97,15 +102,18 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
         val viewableMangaChapter = (viewPager.adapter as? ViewPagerAdapter)?.viewableMangaChapter
           ?: return
 
-        val lastViewedPageIndex = LastViewedPageIndex(
-          currentSwipeDirection,
-          viewableMangaChapter.coercePositionInActualPagesRange(position)
+        val newMangaChapterMeta = mangaChapterMeta
+          ?: return
+
+        val actualPosition = viewableMangaChapter.pagesCount() - position - 1
+
+        newMangaChapterMeta.lastViewedPageIndex.update(
+          newLastViewedPageIndex = viewableMangaChapter.coercePositionInActualPagesRange(actualPosition),
+          newLastReadPageIndex = viewableMangaChapter.coercePositionInActualPagesRange(actualPosition)
         )
 
-        viewableMangaChapter.mangaChapterMeta.lastViewedPageIndex = lastViewedPageIndex
-        readerScreenViewModel.updateMangaChapterMeta(viewableMangaChapter.mangaChapterMeta)
-
-        updatePageIndicator(position, viewableMangaChapter)
+        readerScreenViewModel.updateMangaChapterMeta(newMangaChapterMeta)
+        updatePageIndicator(actualPosition, viewableMangaChapter)
       }
     })
 
@@ -118,28 +126,6 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
       }
       return@setOnApplyWindowInsetsListener insets
     }
-  }
-
-  private fun calculateInitialMangaPageIndex(
-    lastViewedPageIndex: LastViewedPageIndex?,
-    viewableMangaChapter: ViewableMangaChapter
-  ): Int {
-    val pageIndex = when {
-      lastViewedPageIndex == null -> {
-        viewableMangaChapter.firstNonMetaPageIndex()
-      }
-      lastViewedPageIndex.swipeDirection == currentSwipeDirection -> {
-        lastViewedPageIndex.pageIndex
-      }
-      else -> {
-        when (lastViewedPageIndex.swipeDirection) {
-          SwipeDirection.LeftToRight -> lastViewedPageIndex.pageIndex
-          SwipeDirection.RightToLeft -> viewableMangaChapter.pagesCount() - lastViewedPageIndex.pageIndex
-        }
-      }
-    }
-
-    return viewableMangaChapter.coercePositionInActualPagesRange(pageIndex)
   }
 
   private fun getViewInternal(
@@ -186,18 +172,13 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
     readerActivityCallbacks?.toggleFullScreenMode()
   }
 
-  private fun updatePageIndicator(actualPosition: Int, viewableMangaChapter: ViewableMangaChapter) {
-    val totalPages = viewableMangaChapter.pagesCountForPageCounterUi()
-
-    val pageIndicatorIndex = when (currentSwipeDirection) {
-      SwipeDirection.LeftToRight -> actualPosition
-      SwipeDirection.RightToLeft -> totalPages - actualPosition
-    }
+  private fun updatePageIndicator(pageIndex: Int, viewableMangaChapter: ViewableMangaChapter) {
+    val actualPageIndex = viewableMangaChapter.coercePositionInActualPagesRange(pageIndex)
 
     pageIndicator.text = context.getString(
       R.string.page_indicator_template,
-      pageIndicatorIndex,
-      totalPages
+      actualPageIndex,
+      viewableMangaChapter.pagesCountForPageCounterUi()
     )
   }
 

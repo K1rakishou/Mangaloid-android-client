@@ -7,8 +7,10 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +40,7 @@ fun ChaptersScreen(
     key = "chapters_screen_view_model_${mangaDescriptor}",
     factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(mangaDescriptor) }
   )
-  val chaptersScreenState by chaptersScreenViewModel.stateViewable.collectAsState()
+  val chaptersScreenState by chaptersScreenViewModel.chaptersScreenViewModelState.collectAsState()
 
   val currentManga = when (val currentMangaAsync = chaptersScreenState.currentMangaAsync) {
     is AsyncData.NotInitialized -> {
@@ -97,15 +99,15 @@ private fun ChaptersScreenContent(
       items(
         count = manga.chaptersCount(),
         key = { index ->
-          val mangaChapter = manga.getChapterByIndexReversed(index)!!
-          return@items "MANGA_CHAPTER_${mangaChapter.chapterId.id}"
+          val mangaChapterDescriptor = manga.getChapterDescriptorByIndexReversed(index)!!
+          return@items "MANGA_CHAPTER_${mangaChapterDescriptor}"
         }
       ) { index ->
-        val mangaChapter = manga.getChapterByIndexReversed(index)
+        val mangaChapterDescriptor = manga.getChapterDescriptorByIndexReversed(index)
           ?: return@items
 
         MangaChapterItem(
-          mangaChapter = mangaChapter,
+          mangaChapterDescriptor = mangaChapterDescriptor,
           searchQuery = searchQuery,
           onMangaChapterClicked = onMangaChapterClicked
         )
@@ -128,17 +130,23 @@ fun ChaptersScreenHeader(manga: Manga) {
       .then(heightModifier)
       .padding(4.dp)
   ) {
-    Row(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
+    Row(modifier = Modifier
+      .fillMaxWidth()
+      .wrapContentHeight()) {
       CoilImage(
         data = manga.coverThumbnailUrl(),
         contentDescription = null,
         contentScale = ContentScale.FillBounds,
-        modifier = Modifier.width(96.dp).height(192.dp)
+        modifier = Modifier
+          .width(96.dp)
+          .height(192.dp)
       )
 
       Spacer(modifier = Modifier.width(8.dp))
 
-      Column(modifier = Modifier.fillMaxWidth().wrapContentHeight()) {
+      Column(modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentHeight()) {
         Text(text = manga.fullTitlesString, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
         Text(text = stringResource(R.string.manga_type, manga.mangaContentType.type), fontSize = 14.sp)
         Text(text = stringResource(R.string.manga_country, manga.countryOfOrigin), fontSize = 14.sp)
@@ -153,7 +161,9 @@ fun ChaptersScreenHeader(manga: Manga) {
     manga.description?.let { description ->
       Text(
         text = description,
-        modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+        modifier = Modifier
+          .fillMaxWidth()
+          .wrapContentHeight(),
         overflow = TextOverflow.Ellipsis
       )
     }
@@ -184,21 +194,47 @@ private fun ChaptersScreenEmptyContent(
 
 @Composable
 private fun MangaChapterItem(
-  mangaChapter: MangaChapter,
+  mangaChapterDescriptor: MangaChapterDescriptor,
   searchQuery: String?,
   onMangaChapterClicked: (MangaChapterDescriptor) -> Unit
 ) {
+  val chaptersScreenMangaItemViewModel: ChaptersScreenMangaItemViewModel = viewModel(
+    key = "chapters_screen_manga_item_view_model_${mangaChapterDescriptor}",
+    factory = viewModelProviderFactoryOf { ChaptersScreenMangaItemViewModel(mangaChapterDescriptor) }
+  )
+
+  val mangaItemMangaChapterState by chaptersScreenMangaItemViewModel.mangaItemMangaChapterState.collectAsState()
+  val mangaChapter = mangaItemMangaChapterState.mangaChapter
+    ?: return
+
+  val mangaItemMangaChapterMetaState by chaptersScreenMangaItemViewModel.mangaItemMangaChapterMetaState.collectAsState()
+  val mangaChapterMeta = mangaItemMangaChapterMetaState.mangaChapterMeta
+    ?: return
+
+  val totalPagesCount = mangaChapter.pageCount
+  val lastReadPageIndex = mangaChapterMeta.lastViewedPageIndex.lastReadPageIndex
+
+  val completedRead = lastReadPageIndex >= totalPagesCount
+  val mangaChapterItemAlpha = if (completedRead) {
+    .6f
+  } else {
+    1f
+  }
+
   Row(
     modifier = Modifier
       .fillMaxWidth()
       .height(128.dp)
       .padding(4.dp)
+      .graphicsLayer { alpha = mangaChapterItemAlpha }
       .clickable { onMangaChapterClicked(mangaChapter.mangaChapterDescriptor) }
   ) {
     Spacer(modifier = Modifier.width(8.dp))
 
     Column(modifier = Modifier.fillMaxSize()) {
-      val annotatedTitle = StringSpanUtils.annotateString(mangaChapter.title, searchQuery)
+      val annotatedTitle = remember(searchQuery) {
+        StringSpanUtils.annotateString(mangaChapter.title, searchQuery)
+      }
 
       Text(
         text = annotatedTitle,
@@ -219,7 +255,7 @@ private fun MangaChapterItem(
       }
 
       Text(
-        text = stringResource(id = R.string.manga_chapter_page_count, mangaChapter.pageCount),
+        text = stringResource(id = R.string.manga_chapter_page_count, totalPagesCount),
         fontSize = 14.sp,
         modifier = Modifier
           .fillMaxWidth()
@@ -233,6 +269,14 @@ private fun MangaChapterItem(
           .fillMaxWidth()
           .wrapContentHeight()
       )
+
+      if (lastReadPageIndex >= 0) {
+        if (completedRead) {
+          Text(text = "Completed")
+        } else {
+          Text(text = "Reading ${lastReadPageIndex}/${totalPagesCount}")
+        }
+      }
     }
   }
 }

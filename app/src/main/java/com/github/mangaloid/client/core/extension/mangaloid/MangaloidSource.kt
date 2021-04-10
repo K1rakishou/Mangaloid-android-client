@@ -3,10 +3,14 @@ package com.github.mangaloid.client.core.extension.mangaloid
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.data.IpfsDirectoryObjectLinkSortable
 import com.github.mangaloid.client.core.extension.data.MangaChapterIpfsDirectory
-import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
+import com.github.mangaloid.client.model.data.MangaChapterPage
+import com.github.mangaloid.client.core.settings.AppSettings
+import com.github.mangaloid.client.database.MangaloidDatabase
+import com.github.mangaloid.client.database.mapper.MangaChapterMetaMapper
 import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.util.HttpError
 import com.github.mangaloid.client.util.addEncodedQueryParameterIfNotEmpty
+import com.github.mangaloid.client.util.mutableListWithCap
 import com.github.mangaloid.client.util.suspendConvertIntoJsonObject
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -16,9 +20,11 @@ import okhttp3.Request
 import org.joda.time.DateTime
 
 
-class MangaloidRemoteSource(
+class MangaloidSource(
+  private val appSettings: AppSettings,
   private val moshi: Moshi,
-  private val okHttpClient: OkHttpClient
+  private val okHttpClient: OkHttpClient,
+  private val mangaloidDatabase: MangaloidDatabase
 ) {
   private val mangaRemoteListAdapter by lazy {
     return@lazy moshi.adapter<List<MangaloidMangaRemote>>(
@@ -53,21 +59,25 @@ class MangaloidRemoteSource(
         .url(fullSearchMangaUrl)
         .build()
 
-      val foundMangaRemote = okHttpClient.suspendConvertIntoJsonObject<List<MangaloidMangaRemote>>(
+      val foundMangaRemoteList = okHttpClient.suspendConvertIntoJsonObject<List<MangaloidMangaRemote>>(
         request = searchMangaRequest,
         moshi = moshi,
         adapterFunc = { mangaRemoteListAdapter }
       ).unwrap()
 
-      if (foundMangaRemote == null) {
+      if (foundMangaRemoteList == null) {
         return@Try emptyList()
       }
 
-      return@Try foundMangaRemote.map { mangaloidMangaRemote ->
+      return@Try foundMangaRemoteList.map { mangaloidMangaRemote ->
+        val mangaId = checkNotNull(MangaId.fromRawValueOrNull(mangaloidMangaRemote.id.toLong())) {
+          "Failed to convert mangaloidMangaRemote.id: ${mangaloidMangaRemote.id}"
+        }
+
         return@map MangaloidMapper.mangaRemoteToManga(
+          mangaId = mangaId,
           extensionId = extensionId,
           mangaRemote = mangaloidMangaRemote,
-          mangaChapters = emptyList(),
           coversUrl = getMangaCoverThumbnailEndpointUrl
         )
       }
@@ -90,7 +100,7 @@ class MangaloidRemoteSource(
         .url(fullGetMangaByIdUrl)
         .build()
 
-      val mangaRemote = try {
+      val mangaloidMangaRemote = try {
         okHttpClient.suspendConvertIntoJsonObject<MangaloidMangaRemote>(
           request = getMangaByIdRequest,
           moshi = moshi
@@ -103,14 +113,22 @@ class MangaloidRemoteSource(
         throw httpError
       }
 
-      if (mangaRemote == null) {
+      if (mangaloidMangaRemote == null) {
         return@Try null
       }
 
+      val remoteMangaId = MangaId.fromRawValueOrNull(mangaloidMangaRemote.id.toLong())
+      checkNotNull(remoteMangaId) {
+        "Failed to convert mangaloidMangaRemote.id: ${mangaloidMangaRemote.id}"
+      }
+      check(remoteMangaId.id == mangaId.id) {
+        "Manga ids differ! remoteMangaId.id=${remoteMangaId.id}, mangaId.id=${mangaId.id}"
+      }
+
       return@Try MangaloidMapper.mangaRemoteToManga(
+        mangaId = mangaId,
         extensionId = extensionId,
-        mangaRemote = mangaRemote,
-        mangaChapters = emptyList(),
+        mangaRemote = mangaloidMangaRemote,
         coversUrl = getMangaCoverThumbnailEndpointUrl
       )
     }
@@ -131,7 +149,7 @@ class MangaloidRemoteSource(
         .url(fullGetMangaChaptersByMangaIdEndpointUrl)
         .build()
 
-      val mangaChaptersRemote = try {
+      val mangaChapterRemoteList = try {
         okHttpClient.suspendConvertIntoJsonObject<List<MangaloidMangaChapterRemote>>(
           request = getMangaChaptersByMangaIdRequest,
           moshi = moshi,
@@ -145,18 +163,18 @@ class MangaloidRemoteSource(
         throw httpError
       }
 
-      if (mangaChaptersRemote == null) {
+      if (mangaChapterRemoteList == null) {
         return@Try emptyList()
       }
 
-      return@Try mangaChaptersRemote.mapIndexed { index, mangaloidMangaChapterRemote ->
-        val chapterId = MangaChapterId(mangaloidMangaChapterRemote.chapterNo)
-        val prevChapterId = mangaChaptersRemote.getOrNull(index - 1)
-          ?.chapterNo
-          ?.let { chapterNo -> MangaChapterId(chapterNo) }
-        val nextChapterId = mangaChaptersRemote.getOrNull(index + 1)
-          ?.chapterNo
-          ?.let { chapterNo -> MangaChapterId(chapterNo) }
+      return@Try mangaChapterRemoteList.mapIndexed { index, mangaloidMangaChapterRemote ->
+        val chapterId = MangaChapterId(mangaloidMangaChapterRemote.chapterId.toLong())
+        val prevChapterId = mangaChapterRemoteList.getOrNull(index - 1)
+          ?.chapterId
+          ?.let { chapterNo -> MangaChapterId(chapterNo.toLong()) }
+        val nextChapterId = mangaChapterRemoteList.getOrNull(index + 1)
+          ?.chapterId
+          ?.let { chapterNo -> MangaChapterId(chapterNo.toLong()) }
 
         val mangaChapterDescriptor = MangaChapterDescriptor(
           mangaDescriptor = MangaDescriptor(
@@ -165,6 +183,7 @@ class MangaloidRemoteSource(
           ),
           mangaChapterId = chapterId
         )
+
 
         return@mapIndexed MangaChapter(
           mangaChapterDescriptor = mangaChapterDescriptor,
@@ -177,13 +196,9 @@ class MangaloidRemoteSource(
           ordinal = mangaloidMangaChapterRemote.ordinal,
           version = mangaloidMangaChapterRemote.version,
           languageId = mangaloidMangaChapterRemote.languageId,
-//          dateAdded = DateTime(mangaloidMangaChapterRemote.dateAdded), // TODO: 4/7/2021: uncomment me once it's fixed on the server side
-          dateAdded = DateTime(),
-          pageCount = mangaloidMangaChapterRemote.pageCount,
-          mangaChapterMeta = MangaChapterMeta(
-            mangaChapterDescriptor = mangaChapterDescriptor,
-            lastViewedPageIndex = null // TODO: 4/5/2021 load this from the DB
-          )
+          dateAdded = DateTime(mangaloidMangaChapterRemote.dateAdded),
+          chapterPagesCount = mangaloidMangaChapterRemote.pageCount,
+          chapterPageDescriptors = mutableListWithCap(16)
         )
       }
     }
@@ -193,7 +208,7 @@ class MangaloidRemoteSource(
     mangaChapter: MangaChapter,
     getChapterPagesByChapterIpfsIdEndpointUrl: HttpUrl,
     chapterPagesUrl: HttpUrl
-  ): ModularResult<List<DownloadableMangaPage>> {
+  ): ModularResult<List<MangaChapterPage>> {
     return ModularResult.Try {
       val fullGetChapterPagesByChapterIpfsIdEndpointUrl = getChapterPagesByChapterIpfsIdEndpointUrl.newBuilder()
         .addEncodedPathSegment(mangaChapter.mangaChapterIpfsId.ipfsId)
@@ -230,17 +245,16 @@ class MangaloidRemoteSource(
         .mapNotNull { ipfsDirectoryObjectLink -> IpfsDirectoryObjectLinkSortable.fromIpfsDirectoryObjectLink(ipfsDirectoryObjectLink) }
         .sortedBy { ipfsDirectoryObjectLinkSortable -> ipfsDirectoryObjectLinkSortable.mangaPageIndex }
 
-      return@Try ipfsDirectoryObjectLinksSorted.mapIndexed { index, ipfsDirectoryObjectLink ->
+      return@Try ipfsDirectoryObjectLinksSorted.mapIndexed { pageIndex, ipfsDirectoryObjectLink ->
         val pageFullUrl = chapterPagesUrl.newBuilder()
           .addEncodedPathSegment(ipfsDirectoryObjectLink.fileIpfsHash)
           .build()
 
-        return@mapIndexed DownloadableMangaPage(
-          mangaChapterDescriptor = mangaChapter.mangaChapterDescriptor,
+        return@mapIndexed MangaChapterPage(
+          mangaChapterPageDescriptor = MangaChapterPageDescriptor(mangaChapter.mangaChapterDescriptor, pageIndex),
           pageFileName = ipfsDirectoryObjectLink.fileName,
           pageFileSize = ipfsDirectoryObjectLink.fileSize,
           url = pageFullUrl,
-          currentPage = index,
           pageCount = ipfsDirectoryObject.links.size,
           nextChapterId = mangaChapter.nextChapterId
         )

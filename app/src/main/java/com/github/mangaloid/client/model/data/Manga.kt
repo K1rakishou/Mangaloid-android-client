@@ -1,6 +1,5 @@
 package com.github.mangaloid.client.model.data
 
-import com.github.mangaloid.client.util.mutableListWithCap
 import okhttp3.HttpUrl
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
@@ -18,9 +17,9 @@ data class Manga(
   val malId: Int,
   val anilistId: Int,
   val mangaUpdatesId: Int,
-  val coversUrl: HttpUrl
+  val coversUrl: HttpUrl,
+  private val chapterDescriptors: MutableList<MangaChapterDescriptor>,
 ) {
-  private val chapters = mutableListWithCap<MangaChapter>(16)
   private val lastChaptersUpdateTime = AtomicLong(0)
 
   val extensionId: ExtensionId
@@ -34,54 +33,33 @@ data class Manga(
   val fullGenresString by lazy { genres.joinToString() }
 
   @Synchronized
-  fun replaceChapters(newChapters: List<MangaChapter>) {
-    if (newChapters.isEmpty()) {
+  fun replaceChapterDescriptors(newChapterDescriptors: List<MangaChapterDescriptor>) {
+    if (newChapterDescriptors.isEmpty()) {
       return
     }
 
-    newChapters.forEach { newChapter ->
+    newChapterDescriptors.forEach { newChapter ->
       check(newChapter.extensionId == extensionId) { "ExtensionIds differ!" }
       check(newChapter.mangaId == mangaId) { "MangaIds differ!" }
     }
 
-    this.chapters.clear()
-    this.chapters.addAll(newChapters)
+    this.chapterDescriptors.clear()
+    this.chapterDescriptors.addAll(newChapterDescriptors)
 
     lastChaptersUpdateTime.set(System.currentTimeMillis())
   }
 
   @Synchronized
-  fun chaptersCount(): Int = chapters.size
+  fun chaptersCount(): Int = chapterDescriptors.size
 
   @Synchronized
   fun hasChapters(): Boolean {
-    return chapters.isNotEmpty()
+    return chapterDescriptors.isNotEmpty()
   }
 
   @Synchronized
-  fun getChapterByChapterId(mangaChapterId: MangaChapterId): MangaChapter? {
-    return chapters
-      .firstOrNull { mangaChapter -> mangaChapter.chapterId == mangaChapterId }
-  }
-
-  @Synchronized
-  fun getChapterByIndexReversed(index: Int): MangaChapter? {
-    return chapters.getOrNull(chapters.lastIndex - index)
-  }
-
-  @Synchronized
-  fun updateMangaChapter(mangaChapter: MangaChapter) {
-    check(extensionId == mangaChapter.extensionId) { "ExtensionIds differ!" }
-    check(mangaId == mangaChapter.mangaId) { "MangaIds differ!" }
-
-    val indexOfChapter = chapters
-      .indexOfFirst { chapter -> chapter.chapterId == mangaChapter.chapterId }
-
-    if (indexOfChapter < 0) {
-      return
-    }
-
-    chapters[indexOfChapter] = mangaChapter
+  fun getChapterDescriptorByIndexReversed(index: Int): MangaChapterDescriptor? {
+    return chapterDescriptors.getOrNull(chapterDescriptors.lastIndex - index)
   }
 
   fun needChaptersUpdate(): Boolean {

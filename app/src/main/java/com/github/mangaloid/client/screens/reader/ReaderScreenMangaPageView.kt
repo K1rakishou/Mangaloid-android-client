@@ -66,12 +66,12 @@ class ReaderScreenMangaPageView(
     this.viewableMangaChapter = viewableMangaChapter
     this.viewableMangaPage = viewablePage
 
-    Logger.d(TAG, "bindMangaPage(${viewableMangaPage!!.downloadableMangaPage.debugDownloadableMangaPageId()})")
+    Logger.d(TAG, "bindMangaPage(${viewableMangaPage!!.mangaChapterPage.debugMangaPageId()})")
 
     coroutineScope.launch {
       readerScreenViewModel.loadImage(
         viewableMangaChapter = viewableMangaChapter,
-        downloadableMangaPage = viewableMangaPage!!.downloadableMangaPage
+        mangaChapterPage = viewableMangaPage!!.mangaChapterPage
       )
         .collect { mangaPageLoadingStatus ->
           when (mangaPageLoadingStatus) {
@@ -107,9 +107,9 @@ class ReaderScreenMangaPageView(
   }
 
   override fun unbind() {
-    Logger.d(TAG, "unbindMangaPage(${viewableMangaPage?.downloadableMangaPage?.debugDownloadableMangaPageId()})")
+    Logger.d(TAG, "unbindMangaPage(${viewableMangaPage?.mangaChapterPage?.debugMangaPageId()})")
 
-    viewableMangaPage?.downloadableMangaPage?.let { readerScreenViewModel.cancelLoading(it) }
+    viewableMangaPage?.mangaChapterPage?.let { readerScreenViewModel.cancelLoading(it) }
     coroutineScope.cancelChildren()
 
     this.viewableMangaChapter = null
@@ -124,7 +124,7 @@ class ReaderScreenMangaPageView(
       context = context,
       error = error,
       onRetryClicked = {
-        viewableMangaPage?.downloadableMangaPage
+        viewableMangaPage?.mangaChapterPage
           ?.let { mpUrl -> readerScreenViewModel.retryLoadMangaPage(mpUrl) }
       }
     )

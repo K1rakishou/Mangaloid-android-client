@@ -30,6 +30,7 @@ fun MangaSearchScreen(
 
   val state by produceState<AsyncData<List<Manga>>>(
     initialValue = AsyncData.NotInitialized(),
+    key1 = searchQuery,
     producer = {
       mangaSearchScreenViewModel.search(extensionId, searchQuery)
         .collect { mangaListAsync -> value = mangaListAsync }

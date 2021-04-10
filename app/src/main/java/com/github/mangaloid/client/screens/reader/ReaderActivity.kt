@@ -35,9 +35,8 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
     setContentView(R.layout.reader_activity_layout)
 
     val readerViewPager = findViewById<ReaderScreenPagerWithImages>(R.id.reader_view_pager)
-    readerViewPager.init(this)
 
-    val readScreenViewModel by viewModels<ReaderScreenViewModel>(
+    val readerScreenViewModel by viewModels<ReaderScreenViewModel>(
       factoryProducer = {
         viewModelProviderFactoryOf {
           ReaderScreenViewModel(initialMangaChapterDescriptor = mangaChapterDescriptor)
@@ -45,8 +44,10 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
       }
     )
 
+    readerViewPager.init(this, readerScreenViewModel)
+
     coroutineScope.launch {
-      readScreenViewModel.stateViewable.collect { state ->
+      readerScreenViewModel.stateViewable.collect { state ->
         when (val currentMangaChapterAsync = state.currentMangaChapterAsync) {
           is AsyncData.NotInitialized -> {
             // no-op
@@ -58,13 +59,7 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
             readerViewPager.onMangaLoadError(currentMangaChapterAsync.throwable)
           }
           is AsyncData.Data -> {
-            val viewableMangaChapter = currentMangaChapterAsync.data
-
-            readerViewPager.onMangaLoaded(
-              lastViewedPageIndex = viewableMangaChapter.mangaChapterMeta.lastViewedPageIndex,
-              viewableMangaChapter = viewableMangaChapter,
-              readerScreenViewModel = readScreenViewModel
-            )
+            readerViewPager.onMangaLoaded(currentMangaChapterAsync.data,)
           }
         }
       }

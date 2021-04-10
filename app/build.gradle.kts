@@ -16,6 +16,18 @@ android {
     versionName = "v0.2"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+    javaCompileOptions {
+      annotationProcessorOptions {
+        arguments.putAll(
+          mapOf(
+            Pair("room.schemaLocation", "${projectDir}/schemas"),
+            Pair("room.incremental", "true"),
+            Pair("room.expandProjection", "true")
+          )
+        )
+      }
+    }
   }
 
   buildTypes {
@@ -48,7 +60,6 @@ android {
 }
 
 dependencies {
-
   implementation("androidx.core:core-ktx:1.3.2")
   implementation("androidx.appcompat:appcompat:1.2.0")
   implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.1")
@@ -69,6 +80,10 @@ dependencies {
   implementation("com.davemorrissey.labs:subsampling-scale-image-view:3.10.0")
   implementation("dev.chrisbanes.accompanist:accompanist-insets:0.6.2")
   implementation("joda-time:joda-time:2.10.10")
+
+  implementation("androidx.room:room-runtime:2.3.0-rc01")
+  implementation("androidx.room:room-ktx:2.3.0-rc01")
+  kapt("androidx.room:room-compiler:2.3.0-rc01")
 
   testImplementation("junit:junit:4.+")
   androidTestImplementation("androidx.test.ext:junit:1.1.2")

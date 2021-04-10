@@ -2,27 +2,30 @@ package com.github.mangaloid.client.screens.reader
 
 import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.core.ViewModelWithState
-import com.github.mangaloid.client.core.coroutine_executor.SerializedCoroutineExecutor
+import com.github.mangaloid.client.core.coroutine_executor.DebouncingCoroutineExecutor
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.data_structure.ModularResult
-import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
+import com.github.mangaloid.client.model.data.MangaChapterPage
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.di.DependenciesGraph
+import com.github.mangaloid.client.model.cache.MangaCache
 import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.model.repository.MangaRepository
 import com.github.mangaloid.client.util.Logger
 import com.github.mangaloid.client.util.errorMessageOrClassName
+import com.github.mangaloid.client.util.mutableListWithCap
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
 class ReaderScreenViewModel(
   private val initialMangaChapterDescriptor: MangaChapterDescriptor,
   private val appSettings: AppSettings = DependenciesGraph.appSettings,
+  private val mangaCache: MangaCache = DependenciesGraph.mangaCache,
   private val mangaRepository: MangaRepository = DependenciesGraph.mangaRepository,
   private val mangaPageLoader: MangaPageLoader = DependenciesGraph.mangaPageLoader
 ) : ViewModelWithState<ReaderScreenViewModel.ReaderScreenState>(ReaderScreenState()) {
-  private val updateMangaChapterExecutor = SerializedCoroutineExecutor(viewModelScope)
+  private val updateMangaChapterExecutor = DebouncingCoroutineExecutor(viewModelScope)
 
   init {
     viewModelScope.launch {
@@ -68,11 +71,16 @@ class ReaderScreenViewModel(
     updateState {
       val updatedMangaChapter = (updatedMangaChapterResult as ModularResult.Value).value
 
-      val viewableMangaChapter = ViewableMangaChapter.fromMangaChapter(
-        readerSwipeDirection = appSettings.readerSwipeDirection.get(),
+      val chapterPages = createViewableChapterPages(
+        mangaChapterDescriptor = updatedMangaChapter.mangaChapterDescriptor,
         prevChapterId = updatedMangaChapter.prevChapterId,
         currentChapter = updatedMangaChapter,
         nextChapterId = updatedMangaChapter.nextChapterId
+      )
+
+      val viewableMangaChapter = ViewableMangaChapter.fromMangaChapter(
+        chapterPages = chapterPages,
+        currentChapter = updatedMangaChapter,
       )
 
       Logger.d(TAG, "getMangaChapterInternal($mangaChapterDescriptor) success. " +
@@ -84,19 +92,38 @@ class ReaderScreenViewModel(
     }
   }
 
+  private suspend fun createViewableChapterPages(
+    mangaChapterDescriptor: MangaChapterDescriptor,
+    prevChapterId: MangaChapterId?,
+    currentChapter: MangaChapter,
+    nextChapterId: MangaChapterId?
+  ): List<ViewablePage> {
+    val resultList = mutableListWithCap<ViewablePage>(currentChapter.pageCount + ViewableMangaChapter.META_PAGES_COUNT)
+
+    resultList += ViewablePage.NextChapterPage(nextChapterId)
+
+    mangaCache.iterateMangaChapterPages(mangaChapterDescriptor) { pageIndex, downloadableMangaPage ->
+      resultList += ViewablePage.MangaPage(pageIndex, downloadableMangaPage)
+    }
+
+    resultList += ViewablePage.PrevChapterPage(prevChapterId)
+
+    return resultList
+  }
+
   suspend fun loadImage(
     viewableMangaChapter: ViewableMangaChapter,
-    downloadableMangaPage: DownloadableMangaPage
+    mangaChapterPage: MangaChapterPage
   ): SharedFlow<MangaPageLoader.MangaPageLoadingStatus> {
-    Logger.d(TAG, "loadImage(${downloadableMangaPage.debugDownloadableMangaPageId()})")
-    val mangaPageLoadStatusFlow = mangaPageLoader.loadMangaPage(downloadableMangaPage)
+    Logger.d(TAG, "loadImage(${mangaChapterPage.debugMangaPageId()})")
+    val mangaPageLoadStatusFlow = mangaPageLoader.loadMangaPage(mangaChapterPage)
 
     // Launch a separate coroutine because we may have to go to server to fetch the next manga
     // chapter pages
     viewModelScope.launch {
       val pagesToPreload = formatUrlsOfPagesToPreload(
         viewableMangaChapter = viewableMangaChapter,
-        downloadableMangaPage = downloadableMangaPage,
+        mangaChapterPage = mangaChapterPage,
         preloadCount = appSettings.pagesToPreloadCount.get()
       )
       mangaPageLoader.preloadNextPages(pagesToPreload)
@@ -105,14 +132,14 @@ class ReaderScreenViewModel(
     return mangaPageLoadStatusFlow
   }
 
-  fun retryLoadMangaPage(downloadableMangaPage: DownloadableMangaPage) {
-    Logger.d(TAG, "retryLoadMangaPage(${downloadableMangaPage.debugDownloadableMangaPageId()})")
-    mangaPageLoader.retryLoadMangaPage(downloadableMangaPage)
+  fun retryLoadMangaPage(mangaChapterPage: MangaChapterPage) {
+    Logger.d(TAG, "retryLoadMangaPage(${mangaChapterPage.debugMangaPageId()})")
+    mangaPageLoader.retryLoadMangaPage(mangaChapterPage)
   }
 
-  fun cancelLoading(downloadableMangaPage: DownloadableMangaPage) {
-    if (mangaPageLoader.cancelMangaPageLoading(downloadableMangaPage)) {
-      Logger.d(TAG, "cancelLoading(${downloadableMangaPage.debugDownloadableMangaPageId()})")
+  fun cancelLoading(mangaChapterPage: MangaChapterPage) {
+    if (mangaPageLoader.cancelMangaPageLoading(mangaChapterPage)) {
+      Logger.d(TAG, "cancelLoading(${mangaChapterPage.debugMangaPageId()})")
     }
   }
 
@@ -129,9 +156,9 @@ class ReaderScreenViewModel(
   @Suppress("FoldInitializerAndIfToElvis")
   suspend fun formatUrlsOfPagesToPreload(
     viewableMangaChapter: ViewableMangaChapter,
-    downloadableMangaPage: DownloadableMangaPage,
+    mangaChapterPage: MangaChapterPage,
     preloadCount: Int
-  ): List<DownloadableMangaPage> {
+  ): List<MangaChapterPage> {
     val currentMCD = viewableMangaChapter.mangaChapterDescriptor
 
     val currentChapter = mangaRepository.getMangaChapter(currentMCD)
@@ -144,11 +171,12 @@ class ReaderScreenViewModel(
       return emptyList()
     }
 
-    val resultPages = mutableListOf<DownloadableMangaPage>()
-    val nextChapterId = downloadableMangaPage.nextChapterId
+    val resultPages = mutableListOf<MangaChapterPage>()
+    val nextChapterId = mangaChapterPage.nextChapterId
 
-    resultPages += downloadableMangaPage.sliceNextPages(preloadCount)
-      .mapNotNull { pageIndex -> currentChapter.getMangaChapterPage(pageIndex) }
+    resultPages += mangaChapterPage.sliceNextPages(preloadCount)
+      .mapNotNull { pageIndex -> currentChapter.getMangaChapterPageDescriptor(pageIndex) }
+      .mapNotNull { mangaChapterPageDescriptor -> mangaCache.getMangaChapterPage(mangaChapterPageDescriptor) }
 
     if (resultPages.size == preloadCount || nextChapterId == null) {
       return resultPages
@@ -172,13 +200,22 @@ class ReaderScreenViewModel(
     val preloadFromNextChapterCount = preloadCount - resultPages.size
 
     resultPages += (0 until preloadFromNextChapterCount)
-      .mapNotNull { pageIndex -> nextChapter.getMangaChapterPage(pageIndex) }
+      .mapNotNull { pageIndex -> nextChapter.getMangaChapterPageDescriptor(pageIndex) }
+      .mapNotNull { mangaChapterPageDescriptor -> mangaCache.getMangaChapterPage(mangaChapterPageDescriptor) }
 
     return resultPages
   }
 
   fun updateMangaChapterMeta(mangaChapterMeta: MangaChapterMeta) {
-    updateMangaChapterExecutor.post { mangaRepository.updateMangaChapterMeta(mangaChapterMeta) }
+    updateMangaChapterExecutor.post(UPDATE_TIMEOUT_MS) {
+      mangaRepository.updateMangaChapterMeta(mangaChapterMeta)
+        .peekError { error -> Logger.e(TAG, "updateMangaChapterMeta($mangaChapterMeta) error", error) }
+        .ignore()
+    }
+  }
+
+  suspend fun getMangaChapterMeta(mangaChapterDescriptor: MangaChapterDescriptor): MangaChapterMeta? {
+    return mangaCache.getMangaChapterMeta(mangaChapterDescriptor)
   }
 
   data class ReaderScreenState(
@@ -187,6 +224,7 @@ class ReaderScreenViewModel(
 
   companion object {
     private const val TAG = "ReaderScreenViewModel"
+    private const val UPDATE_TIMEOUT_MS = 125L
   }
 
 }

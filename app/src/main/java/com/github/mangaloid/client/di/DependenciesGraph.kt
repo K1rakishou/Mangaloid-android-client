@@ -1,5 +1,6 @@
 package com.github.mangaloid.client.di
 
+import android.app.Application
 import android.content.Context
 import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.core.cache.CacheHandler
@@ -7,9 +8,10 @@ import com.github.mangaloid.client.core.cache.CacheHandlerSynchronizer
 import com.github.mangaloid.client.core.extension.MangaExtensionManager
 import com.github.mangaloid.client.core.page_loader.MangaPageLoader
 import com.github.mangaloid.client.model.repository.MangaRepository
-import com.github.mangaloid.client.core.extension.mangaloid.MangaloidRemoteSource
+import com.github.mangaloid.client.core.extension.mangaloid.MangaloidSource
 import com.github.mangaloid.client.core.misc.MangaloidDnsSelector
 import com.github.mangaloid.client.core.settings.AppSettings
+import com.github.mangaloid.client.database.MangaloidDatabase
 import com.github.mangaloid.client.model.cache.MangaCache
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -22,6 +24,7 @@ import java.util.concurrent.TimeUnit
 object DependenciesGraph {
   lateinit var appContext: Context
   lateinit var okHttpClient: OkHttpClient
+  lateinit var mangaloidDatabase: MangaloidDatabase
   lateinit var moshi: Moshi
 
   private val verboseLogs = true
@@ -29,21 +32,25 @@ object DependenciesGraph {
   val appCoroutineScope = CoroutineScope(Dispatchers.Main)
 
   val mangaloidRemoteSource by lazy {
-    MangaloidRemoteSource(
+    MangaloidSource(
+      appSettings = appSettings,
       moshi = moshi,
-      okHttpClient = okHttpClient
+      okHttpClient = okHttpClient,
+      mangaloidDatabase = mangaloidDatabase
     )
   }
 
   val mangaExtensionManager by lazy { MangaExtensionManager() }
 
   private val cacheHandlerSynchronizer by lazy { CacheHandlerSynchronizer() }
-  private val mangaCache by lazy { MangaCache() }
+  val mangaCache by lazy { MangaCache() }
 
   val appSettings by lazy { AppSettings(appContext) }
 
   val mangaRepository by lazy {
     MangaRepository(
+      appSettings = appSettings,
+      mangaloidDatabase = mangaloidDatabase,
       mangaCache = mangaCache,
       mangaExtensionManager = mangaExtensionManager
     )
@@ -69,8 +76,8 @@ object DependenciesGraph {
     )
   }
 
-  fun init(context: Context) {
-    appContext = context
+  fun init(application: Application) {
+    appContext = application
 
     okHttpClient = OkHttpClient.Builder()
       .readTimeout(20, TimeUnit.SECONDS)
@@ -82,6 +89,8 @@ object DependenciesGraph {
     moshi = Moshi.Builder()
       .addLast(KotlinJsonAdapterFactory())
       .build()
+
+    mangaloidDatabase = MangaloidDatabase.buildDatabase(application)
   }
 
 }

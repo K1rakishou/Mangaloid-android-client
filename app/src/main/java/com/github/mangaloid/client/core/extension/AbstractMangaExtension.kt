@@ -1,7 +1,7 @@
 package com.github.mangaloid.client.core.extension
 
 import com.github.mangaloid.client.core.data_structure.ModularResult
-import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
+import com.github.mangaloid.client.model.data.MangaChapterPage
 import com.github.mangaloid.client.model.data.*
 import okhttp3.HttpUrl
 
@@ -21,5 +21,5 @@ abstract class AbstractMangaExtension {
 
   abstract suspend fun getMangaChapters(mangaId: MangaId): ModularResult<List<MangaChapter>>
 
-  abstract suspend fun getMangaChapterPages(mangaChapter: MangaChapter): ModularResult<List<DownloadableMangaPage>>
+  abstract suspend fun getMangaChapterPages(mangaChapter: MangaChapter): ModularResult<List<MangaChapterPage>>
 }

@@ -13,16 +13,16 @@ class MangaloidToolbarViewModel : ViewModelWithState<ToolbarState>(ToolbarState.
   fun updateToolbar(updater: ToolbarState.() -> ToolbarState) {
     toolbarCoroutineExecutor.post {
       popToolbarStateToRoot()
-      updateState { updater(stateViewable.value) }
+      updateState { updater(currentState()) }
     }
   }
 
   fun updateToolbarDoNotTouchStack(updater: ToolbarState.() -> ToolbarState) {
-    toolbarCoroutineExecutor.post { updateState { updater(stateViewable.value) } }
+    toolbarCoroutineExecutor.post { updateState { updater(currentState()) } }
   }
 
   fun pushToolbarState() {
-    toolbarCoroutineExecutor.post { toolbarStateStack.push(stateViewable.value.copy()) }
+    toolbarCoroutineExecutor.post { toolbarStateStack.push(currentState().copy()) }
   }
 
   fun popToolbarState() {

@@ -1,0 +1,128 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "2c335134032fe3cf24a1c5a46c640af5",
+    "entities": [
+      {
+        "tableName": "manga_meta_entity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `extension_id` INTEGER NOT NULL, `manga_id` INTEGER NOT NULL, `bookmarked` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extensionId",
+            "columnName": "extension_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaId",
+            "columnName": "manga_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bookmarked",
+            "columnName": "bookmarked",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [
+          {
+            "name": "index_manga_meta_entity_extension_id_manga_id",
+            "unique": true,
+            "columnNames": [
+              "extension_id",
+              "manga_id"
+            ],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_manga_meta_entity_extension_id_manga_id` ON `${TABLE_NAME}` (`extension_id`, `manga_id`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "manga_chapter_meta_entity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `owner_manga_meta_id` INTEGER NOT NULL, `manga_chapter_id` INTEGER NOT NULL, `last_viewed_chapter_page_index` INTEGER NOT NULL, `last_read_chapter_page_index` INTEGER NOT NULL, FOREIGN KEY(`owner_manga_meta_id`) REFERENCES `manga_meta_entity`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ownerMangaMetaId",
+            "columnName": "owner_manga_meta_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mangaChapterId",
+            "columnName": "manga_chapter_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastViewedChapterPageIndex",
+            "columnName": "last_viewed_chapter_page_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastReadChapterPageIndex",
+            "columnName": "last_read_chapter_page_index",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "columnNames": [
+            "id"
+          ],
+          "autoGenerate": true
+        },
+        "indices": [
+          {
+            "name": "index_manga_chapter_meta_entity_owner_manga_meta_id_manga_chapter_id",
+            "unique": true,
+            "columnNames": [
+              "owner_manga_meta_id",
+              "manga_chapter_id"
+            ],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_manga_chapter_meta_entity_owner_manga_meta_id_manga_chapter_id` ON `${TABLE_NAME}` (`owner_manga_meta_id`, `manga_chapter_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "manga_meta_entity",
+            "onDelete": "CASCADE",
+            "onUpdate": "CASCADE",
+            "columns": [
+              "owner_manga_meta_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2c335134032fe3cf24a1c5a46c640af5')"
+    ]
+  }
+}

@@ -22,7 +22,7 @@ data class MangaloidMangaRemote(
 data class MangaloidMangaChapterRemote(
   @Json(name = "id") val id: Int,
   @Json(name = "manga_id") val mangaId: Int,
-  @Json(name = "chapter_no") val chapterNo: Int,
+  @Json(name = "chapter_no") val chapterId: Int,
   @Json(name = "chapter_postfix") val chapterPostfix: String,
   @Json(name = "ordinal") val ordinal: Int?,
   @Json(name = "title") val title: String,
@@ -30,6 +30,9 @@ data class MangaloidMangaChapterRemote(
   @Json(name = "version") val version: Int,
   @Json(name = "language_id") val languageId: String,
   @Json(name = "group_id") val groupId: Int?,
-//  @Json(name = "date_added") val dateAdded: Int, // TODO: 4/7/2021: uncomment me once it's fixed on the server side
+  @Json(name = "date_added") protected val _dateAdded: Int,
   @Json(name = "ipfs_link") val ipfsLink: String,
-)
+) {
+  val dateAdded: Long
+    get() = _dateAdded.toLong() * 1000L
+}

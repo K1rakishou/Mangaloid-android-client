@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.view.View
 import android.view.ViewGroup
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -226,4 +227,8 @@ fun HttpUrl.Builder.addEncodedQueryParameterIfNotEmpty(encodedName: String, enco
   }
 
   return this
+}
+
+suspend fun <State> MutableStateFlow<State>.updateState(stateUpdater: suspend State.() -> State) {
+  this.value = stateUpdater(this.value)
 }

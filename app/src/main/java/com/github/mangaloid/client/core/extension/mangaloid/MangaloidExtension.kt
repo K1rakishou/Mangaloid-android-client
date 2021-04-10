@@ -2,14 +2,14 @@ package com.github.mangaloid.client.core.extension.mangaloid
 
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
-import com.github.mangaloid.client.core.page_loader.DownloadableMangaPage
+import com.github.mangaloid.client.model.data.MangaChapterPage
 import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.data.*
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
 class MangaloidExtension(
-  private val mangaloidRemoteSource: MangaloidRemoteSource = DependenciesGraph.mangaloidRemoteSource
+  private val mangaloidSource: MangaloidSource = DependenciesGraph.mangaloidRemoteSource
 ) : AbstractMangaExtension() {
 
   override val extensionId: ExtensionId
@@ -53,7 +53,7 @@ class MangaloidExtension(
     artist: String,
     genres: List<String>
   ): ModularResult<List<Manga>> {
-    return mangaloidRemoteSource.searchForManga(
+    return mangaloidSource.searchForManga(
       extensionId = extensionId,
       title = title,
       author = author,
@@ -65,7 +65,7 @@ class MangaloidExtension(
   }
 
   override suspend fun getManga(mangaId: MangaId): ModularResult<Manga?> {
-    return mangaloidRemoteSource.getMangaByMangaId(
+    return mangaloidSource.getMangaByMangaId(
       extensionId = extensionId,
       mangaId = mangaId,
       getMangaByIdEndpointUrl = getMangaByIdEndpointUrl,
@@ -74,15 +74,15 @@ class MangaloidExtension(
   }
 
   override suspend fun getMangaChapters(mangaId: MangaId): ModularResult<List<MangaChapter>> {
-    return mangaloidRemoteSource.getMangaChaptersByMangaId(
+    return mangaloidSource.getMangaChaptersByMangaId(
       extensionId = extensionId,
       mangaId = mangaId,
       getMangaChaptersByMangaIdEndpointUrl = getMangaChaptersByMangaIdEndpointUrl,
     )
   }
 
-  override suspend fun getMangaChapterPages(mangaChapter: MangaChapter): ModularResult<List<DownloadableMangaPage>> {
-    return mangaloidRemoteSource.getMangaChapterPages(
+  override suspend fun getMangaChapterPages(mangaChapter: MangaChapter): ModularResult<List<MangaChapterPage>> {
+    return mangaloidSource.getMangaChapterPages(
       mangaChapter = mangaChapter,
       getChapterPagesByChapterIpfsIdEndpointUrl = getChapterPagesByChapterIpfsIdEndpointUrl,
       chapterPagesUrl = chapterPagesUrl
