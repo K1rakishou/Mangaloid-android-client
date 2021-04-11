@@ -27,6 +27,7 @@ class MangaCache {
   @GuardedBy("mutex")
   private val mangaChapterMetaCache = mutableMapWithCap<MangaChapterDescriptor, MangaChapterMeta>(128)
 
+  @GuardedBy("mutex")
   private val mangaChapterMetaUpdates = mutableMapWithCap<MangaChapterDescriptor, MutableSharedFlow<MangaChapterMeta>>(16)
 
   suspend fun allMangaMetaPreloaded(mangaList: List<Manga>): Boolean {

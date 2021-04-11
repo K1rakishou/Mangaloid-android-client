@@ -24,8 +24,8 @@ import com.google.accompanist.coil.CoilImage
 import dev.chrisbanes.accompanist.insets.imePadding
 
 @Composable
-fun MangaProgressWidget() {
-  Box(modifier = Modifier.fillMaxSize()) {
+fun CircularProgressIndicatorWidget() {
+  Box(modifier = Modifier.fillMaxSize().imePadding()) {
     CircularProgressIndicator(
       modifier = Modifier
         .align(Alignment.Center)
@@ -35,7 +35,7 @@ fun MangaProgressWidget() {
 }
 
 @Composable
-fun MangaErrorWidget(error: Throwable) {
+fun ErrorTextWidget(error: Throwable) {
   Box(modifier = Modifier
     .fillMaxSize()
     .imePadding()
@@ -48,7 +48,7 @@ fun MangaErrorWidget(error: Throwable) {
 }
 
 @Composable
-fun MangaFullSizeTextWidget(text: String) {
+fun FullSizeTextWidget(text: String) {
   Box(modifier = Modifier
     .fillMaxSize()
     .imePadding()

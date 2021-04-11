@@ -10,10 +10,10 @@ import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.screens.manga_search.MangaSearchScreen
 import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawerViewModel
-import com.github.mangaloid.client.ui.widget.manga.MangaFullSizeTextWidget
-import com.github.mangaloid.client.ui.widget.manga.MangaErrorWidget
+import com.github.mangaloid.client.ui.widget.manga.FullSizeTextWidget
+import com.github.mangaloid.client.ui.widget.manga.ErrorTextWidget
 import com.github.mangaloid.client.ui.widget.manga.MangaItemListWidget
-import com.github.mangaloid.client.ui.widget.manga.MangaProgressWidget
+import com.github.mangaloid.client.ui.widget.manga.CircularProgressIndicatorWidget
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
@@ -28,7 +28,7 @@ fun MainScreen(
   val selectedExtension = drawerState.currentExtension
 
   if (selectedExtension == null) {
-    MangaProgressWidget()
+    CircularProgressIndicatorWidget()
     return
   }
 
@@ -57,12 +57,12 @@ fun MainScreen(
     is AsyncData.NotInitialized -> {
       // no-op
     }
-    is AsyncData.Loading -> MangaProgressWidget()
-    is AsyncData.Error -> MangaErrorWidget(initialLoadState.throwable)
+    is AsyncData.Loading -> CircularProgressIndicatorWidget()
+    is AsyncData.Error -> ErrorTextWidget(initialLoadState.throwable)
     is AsyncData.Data -> {
       val mainPageMangaList = initialLoadState.data
       if (mainPageMangaList.isEmpty()) {
-        MangaFullSizeTextWidget(stringResource(R.string.manga_library_is_empty))
+        FullSizeTextWidget(stringResource(R.string.manga_library_is_empty))
       } else {
         MangaItemListWidget(
           mainPageMangaList = mainPageMangaList,

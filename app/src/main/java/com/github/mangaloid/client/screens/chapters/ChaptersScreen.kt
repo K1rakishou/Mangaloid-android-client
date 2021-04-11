@@ -3,6 +3,7 @@ package com.github.mangaloid.client.screens.chapters
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -21,8 +22,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.model.data.*
-import com.github.mangaloid.client.ui.widget.manga.MangaErrorWidget
-import com.github.mangaloid.client.ui.widget.manga.MangaProgressWidget
+import com.github.mangaloid.client.ui.widget.manga.ErrorTextWidget
+import com.github.mangaloid.client.ui.widget.manga.CircularProgressIndicatorWidget
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarButtonId
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
@@ -47,11 +48,11 @@ fun ChaptersScreen(
       return
     }
     is AsyncData.Loading -> {
-      MangaProgressWidget()
+      CircularProgressIndicatorWidget()
       return
     }
     is AsyncData.Error -> {
-      MangaErrorWidget(error = currentMangaAsync.throwable)
+      ErrorTextWidget(error = currentMangaAsync.throwable)
       return
     }
     is AsyncData.Data -> currentMangaAsync.data
@@ -132,7 +133,8 @@ fun ChaptersScreenHeader(manga: Manga) {
   ) {
     Row(modifier = Modifier
       .fillMaxWidth()
-      .wrapContentHeight()) {
+      .wrapContentHeight()
+    ) {
       CoilImage(
         data = manga.coverThumbnailUrl(),
         contentDescription = null,
@@ -146,7 +148,8 @@ fun ChaptersScreenHeader(manga: Manga) {
 
       Column(modifier = Modifier
         .fillMaxWidth()
-        .wrapContentHeight()) {
+        .wrapContentHeight()
+      ) {
         Text(text = manga.fullTitlesString, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold)
         Text(text = stringResource(R.string.manga_type, manga.mangaContentType.type), fontSize = 14.sp)
         Text(text = stringResource(R.string.manga_country, manga.countryOfOrigin), fontSize = 14.sp)

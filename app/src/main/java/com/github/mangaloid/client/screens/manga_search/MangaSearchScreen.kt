@@ -10,10 +10,10 @@ import com.github.mangaloid.client.core.AppConstants
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.model.data.ExtensionId
 import com.github.mangaloid.client.model.data.Manga
-import com.github.mangaloid.client.ui.widget.manga.MangaFullSizeTextWidget
-import com.github.mangaloid.client.ui.widget.manga.MangaErrorWidget
+import com.github.mangaloid.client.ui.widget.manga.FullSizeTextWidget
+import com.github.mangaloid.client.ui.widget.manga.ErrorTextWidget
 import com.github.mangaloid.client.ui.widget.manga.MangaItemListWidget
-import com.github.mangaloid.client.ui.widget.manga.MangaProgressWidget
+import com.github.mangaloid.client.ui.widget.manga.CircularProgressIndicatorWidget
 import kotlinx.coroutines.flow.collect
 
 @Composable
@@ -38,12 +38,12 @@ fun MangaSearchScreen(
 
   when (val asyncData = state) {
     is AsyncData.NotInitialized -> return
-    is AsyncData.Loading -> MangaProgressWidget()
-    is AsyncData.Error -> MangaErrorWidget(asyncData.throwable)
+    is AsyncData.Loading -> CircularProgressIndicatorWidget()
+    is AsyncData.Error -> ErrorTextWidget(asyncData.throwable)
     is AsyncData.Data -> {
       val foundManga = asyncData.data
       if (foundManga.isEmpty()) {
-        MangaFullSizeTextWidget(stringResource(R.string.no_manga_found_by_query, searchQuery))
+        FullSizeTextWidget(stringResource(R.string.no_manga_found_by_query, searchQuery))
       } else {
         MangaItemListWidget(foundManga, searchQuery, onMangaClicked)
       }

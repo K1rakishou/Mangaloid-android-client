@@ -24,7 +24,7 @@ abstract class MangaloidDatabase : RoomDatabase() {
   companion object {
     const val DATABASE_NAME = "Mangaloid.db"
 
-    // SQLite will thrown an exception if you attempt to pass more than 999 values into the IN
+    // SQLite will throw an exception if you attempt to pass more than 999 values into the IN
     // operator so we need to use batching to avoid this crash. And we use 950 instead of 999
     // just to be safe.
     const val SQLITE_IN_OPERATOR_MAX_BATCH_SIZE = 950
