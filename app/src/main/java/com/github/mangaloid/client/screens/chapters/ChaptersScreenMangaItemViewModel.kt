@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.cache.MangaCache
+import com.github.mangaloid.client.model.cache.MangaUpdates
 import com.github.mangaloid.client.model.data.MangaChapter
 import com.github.mangaloid.client.model.data.MangaChapterDescriptor
 import com.github.mangaloid.client.model.data.MangaChapterMeta
@@ -15,6 +16,7 @@ import kotlinx.coroutines.launch
 
 class ChaptersScreenMangaItemViewModel(
   private val mangaChapterDescriptor: MangaChapterDescriptor,
+  private val mangaUpdates: MangaUpdates = DependenciesGraph.mangaUpdates,
   private val mangaCache: MangaCache = DependenciesGraph.mangaCache
 ) : ViewModel() {
   private val _mangaItemMangaChapterState = MutableStateFlow(MangaItemMangaChapterState())
@@ -27,7 +29,7 @@ class ChaptersScreenMangaItemViewModel(
 
   init {
     viewModelScope.launch {
-      mangaCache.getMangaChapterMetaUpdatesFlow(mangaChapterDescriptor)
+      mangaUpdates.getMangaChapterMetaUpdatesFlow(mangaChapterDescriptor)
         .collect { mangaChapterMeta ->
           _mangaItemMangaChapterMetaState.updateState { copy(mangaChapterMeta = mangaChapterMeta.deepCopy()) }
         }

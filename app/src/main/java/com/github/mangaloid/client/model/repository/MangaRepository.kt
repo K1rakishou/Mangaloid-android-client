@@ -4,7 +4,6 @@ import androidx.room.withTransaction
 import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
 import com.github.mangaloid.client.core.extension.MangaExtensionManager
-import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.database.MangaloidDatabase
 import com.github.mangaloid.client.database.entity.MangaChapterMetaEntity
 import com.github.mangaloid.client.database.entity.MangaMetaEntity
@@ -12,9 +11,11 @@ import com.github.mangaloid.client.database.mapper.MangaChapterMetaMapper
 import com.github.mangaloid.client.model.cache.MangaCache
 import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.util.Logger
+import com.github.mangaloid.client.util.errorMessageOrClassName
+import kotlinx.coroutines.*
 
 class MangaRepository(
-  private val appSettings: AppSettings,
+  private val appScope: CoroutineScope,
   private val mangaloidDatabase: MangaloidDatabase,
   private val mangaCache: MangaCache,
   private val mangaExtensionManager: MangaExtensionManager
@@ -24,10 +25,32 @@ class MangaRepository(
     return repoAsync {
       return@repoAsync ModularResult.Try {
         Logger.d(TAG, "loadLibrary(extensionId=${extensionId.id})")
-        val result = emptyList<Manga>()
-        Logger.d(TAG, "loadLibrary(extensionId=${extensionId.id}) success")
+        val bookmarkedMangaMetaList = mangaloidDatabase.mangaMetaDao().selectAllBookmarkedByExtensionId(extensionId.id)
 
-        return@Try result
+        // TODO: 4/11/2021 switch to a batch api once it's implemented on the server
+        val libraryMangaList = supervisorScope {
+          return@supervisorScope bookmarkedMangaMetaList
+            .chunked(4)
+            .flatMap { chunk ->
+              return@flatMap chunk.map { mangaMetaEntity ->
+                return@map appScope.async(Dispatchers.Default) {
+                  val mangaDescriptor = MangaDescriptor(
+                    extensionId = extensionId,
+                    mangaId = MangaId.fromRawValueOrNull(mangaMetaEntity.mangaId)!!
+                  )
+
+                  return@async getManga(mangaDescriptor)
+                    .peekError { error -> Logger.e(TAG, "getManga($mangaDescriptor) error=${error.errorMessageOrClassName()}") }
+                    .valueOrNull()
+                }
+              }.awaitAll()
+                .filterNotNull()
+            }
+        }
+
+        Logger.d(TAG, "loadLibrary(extensionId=${extensionId.id}) success, loaded ${libraryMangaList.size} manga")
+
+        return@Try libraryMangaList
       }
     }
   }
@@ -44,14 +67,14 @@ class MangaRepository(
         Logger.d(TAG, "searchForManga(extensionId=${extensionId.id}, title='${title}', author='${author}', " +
           "artist='${artist}', genres='${genres.joinToString()}')")
 
-        val foundMangaResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
+        val foundMangaResult = getMangaExtension(extensionId)
           .searchForManga(title, author, artist, genres)
 
         if (foundMangaResult is ModularResult.Error) {
           Logger.e(TAG, "searchForManga(extensionId=${extensionId.id}, title='${title}', author='${author}', " +
             "artist='${artist}', genres='${genres.joinToString()}') getMangaExtensionById() error", foundMangaResult.error)
 
-          return@repoAsync ModularResult.error(foundMangaResult.error)
+          throw foundMangaResult.error
         }
 
         val foundManga = (foundMangaResult as ModularResult.Value).value
@@ -129,34 +152,34 @@ class MangaRepository(
 
         val fromCache = mangaCache.getManga(mangaDescriptor)
         if (fromCache != null) {
-          Logger.d(TAG, "getManga(mangaDescriptor=$mangaDescriptor) success")
-          return@repoAsync refreshMangaChaptersIfNeeded(mangaDescriptor.extensionId, fromCache)
+          Logger.d(TAG, "getManga(mangaDescriptor=$mangaDescriptor) success from cache")
+
+          return@Try refreshMangaChaptersIfNeeded(mangaDescriptor.extensionId, fromCache)
             .peekError { error ->
               Logger.e(TAG, "getManga(mangaDescriptor=$mangaDescriptor) refreshMangaChaptersIfNeeded() error", error)
             }
+            .unwrap()
         }
 
-        val mangaLoadedFromServerResult =
-          mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(mangaDescriptor.extensionId)
-            .getManga(mangaDescriptor.mangaId)
+        val mangaLoadedFromServerResult = getMangaExtension(mangaDescriptor.extensionId)
+          .getManga(mangaDescriptor.mangaId)
 
         if (mangaLoadedFromServerResult is ModularResult.Error) {
           Logger.e(TAG, "getManga(mangaDescriptor=$mangaDescriptor) getManga() error", mangaLoadedFromServerResult.error)
-          return@repoAsync ModularResult.error(mangaLoadedFromServerResult.error)
+          throw mangaLoadedFromServerResult.error
         }
 
         val manga = (mangaLoadedFromServerResult as ModularResult.Value).value
         if (manga == null) {
           Logger.d(TAG, "getManga(mangaDescriptor=$mangaDescriptor) getManga() manga == null")
-          return@repoAsync ModularResult.value(null)
+          return@Try null
         }
 
         mangaCache.put(mangaDescriptor.extensionId, manga)
         preloadMangaMeta(mangaDescriptor.extensionId, listOf(manga))
-
         Logger.d(TAG, "getManga(mangaDescriptor=$mangaDescriptor) success")
 
-        return@repoAsync ModularResult.value(manga)
+        return@Try manga
       }
     }
   }
@@ -170,7 +193,7 @@ class MangaRepository(
 
         Logger.d(TAG, "refreshMangaChaptersIfNeeded(extensionId=${extensionId.id}, mangaId=${manga.mangaId.id})")
 
-        val chaptersResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
+        val chaptersResult = getMangaExtension(extensionId)
           .getMangaChapters(manga.mangaId)
 
         if (chaptersResult is ModularResult.Error) {
@@ -208,7 +231,7 @@ class MangaRepository(
         Logger.d(TAG, "refreshMangaChapterPagesIfNeeded(extensionId=${extensionId.id}, " +
           "mangaChapterId=${mangaChapter.chapterId.id})")
 
-        val mangaChapterPagesResult = mangaExtensionManager.getMangaExtensionById<AbstractMangaExtension>(extensionId)
+        val mangaChapterPagesResult = getMangaExtension(extensionId)
           .getMangaChapterPages(mangaChapter)
 
         if (mangaChapterPagesResult is ModularResult.Error) {
@@ -236,10 +259,14 @@ class MangaRepository(
     }
   }
 
-  // TODO: 4/10/2021 once bookmark button is added
   suspend fun updateMangaMeta(mangaMeta: MangaMeta): ModularResult<Unit> {
     return repoAsync {
       return@repoAsync ModularResult.Try {
+        val fromCache = mangaCache.getMangaMeta(mangaMeta.mangaDescriptor)
+        if (fromCache == mangaMeta) {
+          return@Try
+        }
+
         Logger.d(TAG, "updateMangaMeta(mangaMeta=${mangaMeta.mangaDescriptor})")
 
         val mangaMetaEntity = MangaMetaEntity(
@@ -262,6 +289,11 @@ class MangaRepository(
   suspend fun updateMangaChapterMeta(mangaChapterMeta: MangaChapterMeta): ModularResult<Unit> {
     return repoAsync {
       return@repoAsync ModularResult.Try {
+        val cachedMangaChapterMeta = mangaCache.getMangaChapterMeta(mangaChapterMeta.mangaChapterDescriptor)
+        if (cachedMangaChapterMeta == mangaChapterMeta) {
+          return@Try
+        }
+
         val cachedMangaMeta = mangaCache.getMangaMeta(mangaChapterMeta.mangaChapterDescriptor.mangaDescriptor)
         val mangaMetaDatabaseId = cachedMangaMeta?.databaseId
 
@@ -272,9 +304,6 @@ class MangaRepository(
           return@Try
         }
 
-        val cachedMangaChapterMeta = mangaCache.getMangaChapterMeta(mangaChapterMeta.mangaChapterDescriptor)
-        val prevLastReadChapterPageIndex = cachedMangaChapterMeta?.lastViewedPageIndex?.lastReadPageIndex ?: 0
-
         Logger.d(TAG, "updateMangaChapterMeta(mangaChapterDescriptor=${mangaChapterMeta.mangaChapterDescriptor})")
 
         val mangaChapterMetaEntity = MangaChapterMetaEntity(
@@ -283,7 +312,7 @@ class MangaRepository(
           mangaChapterId = mangaChapterMeta.mangaChapterDescriptor.mangaChapterId.id,
           lastViewedChapterPageIndex = mangaChapterMeta.lastViewedPageIndex.lastViewedPageIndex,
           lastReadChapterPageIndex = Math.max(
-            prevLastReadChapterPageIndex,
+            cachedMangaChapterMeta?.lastViewedPageIndex?.lastReadPageIndex ?: 0,
             mangaChapterMeta.lastViewedPageIndex.lastReadPageIndex
           )
         )
@@ -294,62 +323,6 @@ class MangaRepository(
         }
 
         mangaCache.putMangaChapterMeta(mangaChapterMeta)
-      }
-    }
-  }
-
-  private suspend fun createDefaultMangaMetaInTheDatabaseIfNeeded(mangaDescriptor: MangaDescriptor): ModularResult<Unit> {
-    return ModularResult.Try {
-      val hasDatabaseId = mangaCache.getMangaMeta(mangaDescriptor)?.hasDatabaseId()
-        ?: false
-
-      if (hasDatabaseId) {
-        return@Try
-      }
-
-      mangaloidDatabase.withTransaction {
-        val extensionId = mangaDescriptor.extensionId
-        val mangaId = mangaDescriptor.mangaId
-
-        Logger.d(TAG, "createDefaultMangaMetaInTheDatabaseIfNeeded()")
-
-        val mangaMeta = mangaloidDatabase.mangaMetaDao().selectById(extensionId.id, mangaId.id)
-          ?.let { mangaMetaEntity ->
-            return@let MangaMeta(
-              databaseId = mangaMetaEntity.id,
-              mangaDescriptor = mangaDescriptor,
-              bookmarked = mangaMetaEntity.bookmarked
-            )
-          }
-
-        if (mangaMeta != null) {
-          mangaCache.putMangaMeta(mangaMeta)
-          Logger.d(TAG, "createDefaultMangaMetaInTheDatabaseIfNeeded() already exists in the DB")
-
-          return@withTransaction
-        }
-
-        val mangaMetaEntity = MangaMetaEntity(
-          id = 0L,
-          extensionId = extensionId.id,
-          mangaId = mangaId.id,
-          bookmarked = false
-        )
-
-        val databaseId = mangaloidDatabase.mangaMetaDao().createNew(mangaMetaEntity)
-        if (databaseId < 0L) {
-          // Already exists
-          return@withTransaction
-        }
-
-        val newMangaMeta = MangaMeta(
-          databaseId = databaseId,
-          mangaDescriptor = mangaDescriptor,
-          bookmarked = false
-        )
-
-        mangaCache.putMangaMeta(newMangaMeta)
-        Logger.d(TAG, "createDefaultMangaMetaInTheDatabaseIfNeeded() success")
       }
     }
   }
@@ -432,6 +405,71 @@ class MangaRepository(
     }
   }
 
+  private suspend fun getMangaExtension(extensionId: ExtensionId): AbstractMangaExtension {
+    return mangaExtensionManager.getMangaExtensionById(extensionId)
+  }
+
+  private suspend fun createDefaultMangaMetaInTheDatabaseIfNeeded(mangaDescriptor: MangaDescriptor): ModularResult<Unit> {
+    return ModularResult.Try {
+      val hasDatabaseId = mangaCache.getMangaMeta(mangaDescriptor)?.hasDatabaseId()
+        ?: false
+
+      if (hasDatabaseId) {
+        return@Try
+      }
+
+      mangaloidDatabase.withTransaction {
+        val extensionId = mangaDescriptor.extensionId
+        val mangaId = mangaDescriptor.mangaId
+
+        Logger.d(TAG, "createDefaultMangaMetaInTheDatabaseIfNeeded()")
+
+        val mangaMeta = mangaloidDatabase.mangaMetaDao().selectById(extensionId.id, mangaId.id)
+          ?.let { mangaMetaEntity ->
+            return@let MangaMeta(
+              databaseId = mangaMetaEntity.id,
+              mangaDescriptor = mangaDescriptor,
+              bookmarked = mangaMetaEntity.bookmarked
+            )
+          }
+
+        if (mangaMeta != null) {
+          mangaCache.putMangaMeta(mangaMeta)
+          Logger.d(TAG, "createDefaultMangaMetaInTheDatabaseIfNeeded() already exists in the DB")
+
+          return@withTransaction
+        }
+
+        val mangaMetaEntity = MangaMetaEntity(
+          id = 0L,
+          extensionId = extensionId.id,
+          mangaId = mangaId.id,
+          bookmarked = false
+        )
+
+        var databaseId = mangaloidDatabase.mangaMetaDao().createNew(mangaMetaEntity)
+        if (databaseId < 0L) {
+          val selectedId = mangaloidDatabase.mangaMetaDao().selectById(extensionId.id, mangaId.id)?.id
+          if (selectedId == null || selectedId < 0L) {
+            throw InconsistencyError("Failed to create new mangaMetaEntity ($mangaMetaEntity) and " +
+              "failed to select it from the DB by ids (${extensionId.id}, ${mangaId.id})")
+          }
+
+          databaseId = selectedId
+        }
+
+        val newMangaMeta = MangaMeta(
+          databaseId = databaseId,
+          mangaDescriptor = mangaDescriptor,
+          bookmarked = false
+        )
+
+        mangaCache.putMangaMeta(newMangaMeta)
+        Logger.d(TAG, "createDefaultMangaMetaInTheDatabaseIfNeeded() success")
+      }
+    }
+  }
+
   class MangaNotFound(
     mangaDescriptor: MangaDescriptor
   ) : Exception("Manga not found. (mangaDescriptor=$mangaDescriptor)")
@@ -443,6 +481,8 @@ class MangaRepository(
   class MangaChapterNotFound(
     mangaChapterDescriptor: MangaChapterDescriptor
   ) : Exception("Manga chapter not found. (mangaChapterDescriptor=$mangaChapterDescriptor)")
+
+  class InconsistencyError(message: String) : Exception(message)
 
   companion object {
     private const val TAG = "MangaRepository"

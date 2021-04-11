@@ -13,6 +13,7 @@ import com.github.mangaloid.client.core.misc.MangaloidDnsSelector
 import com.github.mangaloid.client.core.settings.AppSettings
 import com.github.mangaloid.client.database.MangaloidDatabase
 import com.github.mangaloid.client.model.cache.MangaCache
+import com.github.mangaloid.client.model.cache.MangaUpdates
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import kotlinx.coroutines.CoroutineScope
@@ -43,13 +44,15 @@ object DependenciesGraph {
   val mangaExtensionManager by lazy { MangaExtensionManager() }
 
   private val cacheHandlerSynchronizer by lazy { CacheHandlerSynchronizer() }
-  val mangaCache by lazy { MangaCache() }
+
+  val mangaUpdates by lazy { MangaUpdates() }
+  val mangaCache by lazy { MangaCache(mangaUpdates) }
 
   val appSettings by lazy { AppSettings(appContext) }
 
   val mangaRepository by lazy {
     MangaRepository(
-      appSettings = appSettings,
+      appScope = appCoroutineScope,
       mangaloidDatabase = mangaloidDatabase,
       mangaCache = mangaCache,
       mangaExtensionManager = mangaExtensionManager

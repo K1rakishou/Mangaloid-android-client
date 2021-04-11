@@ -1,18 +1,16 @@
 package com.github.mangaloid.client.model.cache
 
 import androidx.annotation.GuardedBy
-import com.github.mangaloid.client.model.data.MangaChapterPage
 import com.github.mangaloid.client.model.data.*
 import com.github.mangaloid.client.util.mutableListWithCap
 import com.github.mangaloid.client.util.mutableMapWithCap
 import com.github.mangaloid.client.util.putIfNotExists
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class MangaCache {
+class MangaCache(
+  private val mangaUpdates: MangaUpdates
+) {
   private val mutex = Mutex()
 
   @GuardedBy("mutex")
@@ -26,9 +24,6 @@ class MangaCache {
   private val mangaMetaCache = mutableMapWithCap<MangaDescriptor, MangaMeta>(128)
   @GuardedBy("mutex")
   private val mangaChapterMetaCache = mutableMapWithCap<MangaChapterDescriptor, MangaChapterMeta>(128)
-
-  @GuardedBy("mutex")
-  private val mangaChapterMetaUpdates = mutableMapWithCap<MangaChapterDescriptor, MutableSharedFlow<MangaChapterMeta>>(16)
 
   suspend fun allMangaMetaPreloaded(mangaList: List<Manga>): Boolean {
     return mutex.withLock {
@@ -45,7 +40,12 @@ class MangaCache {
   }
 
   suspend fun putMangaMeta(mangaMeta: MangaMeta) {
-    mutex.withLock { mangaMetaCache[mangaMeta.mangaDescriptor] = mangaMeta }
+    mutex.withLock {
+      val prevMangaMeta = mangaMetaCache[mangaMeta.mangaDescriptor]
+      mangaMetaCache[mangaMeta.mangaDescriptor] = mangaMeta
+
+      mangaUpdates.notifyListenersMangaMetaUpdated(prevMangaMeta, mangaMeta)
+    }
   }
 
   suspend fun allMangaChapterMetaPreloaded(mangaChapterList: List<MangaChapter>): Boolean {
@@ -63,25 +63,11 @@ class MangaCache {
   }
 
   suspend fun putMangaChapterMeta(mangaChapterMeta: MangaChapterMeta) {
-    mutex.withLock { mangaChapterMetaCache[mangaChapterMeta.mangaChapterDescriptor] = mangaChapterMeta }
-    notifyListenersMangaChapterMetaUpdated(mangaChapterMeta)
-  }
+    mutex.withLock {
+      val prevMangaChapterMeta = mangaChapterMetaCache[mangaChapterMeta.mangaChapterDescriptor]
+      mangaChapterMetaCache[mangaChapterMeta.mangaChapterDescriptor] = mangaChapterMeta
 
-  suspend fun getMangaChapterMetaUpdatesFlow(mangaChapterDescriptor: MangaChapterDescriptor): Flow<MangaChapterMeta> {
-    return mutex.withLock {
-      val fromCache = mangaChapterMetaUpdates[mangaChapterDescriptor]
-      if (fromCache != null) {
-        return@withLock fromCache
-      }
-
-      val mangaChapterMetaUpdatesFlow = MutableSharedFlow<MangaChapterMeta>(
-        replay = 0,
-        extraBufferCapacity = 16,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-      )
-
-      mangaChapterMetaUpdates[mangaChapterDescriptor] = mangaChapterMetaUpdatesFlow
-      return@withLock mangaChapterMetaUpdatesFlow
+      mangaUpdates.notifyListenersMangaChapterMetaUpdated(prevMangaChapterMeta, mangaChapterMeta)
     }
   }
 
@@ -190,10 +176,6 @@ class MangaCache {
         iterator(index, downloadableMangaPage)
       }
     }
-  }
-
-  private suspend fun notifyListenersMangaChapterMetaUpdated(mangaChapterMeta: MangaChapterMeta) {
-    mangaChapterMetaUpdates[mangaChapterMeta.mangaChapterDescriptor]?.emit(mangaChapterMeta)
   }
 
 }

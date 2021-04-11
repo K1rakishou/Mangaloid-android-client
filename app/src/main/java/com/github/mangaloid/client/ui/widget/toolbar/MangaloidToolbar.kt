@@ -26,12 +26,14 @@ import com.github.mangaloid.client.helper.BackPressHandler
 import com.github.mangaloid.client.ui.theme.Typography
 import com.github.mangaloid.client.ui.widget.drawer.MangaloidDrawerViewModel
 import com.github.mangaloid.client.util.AndroidUtils.toDp
+import com.github.mangaloid.client.util.exhaustive
 import dev.chrisbanes.accompanist.insets.LocalWindowInsets
 import dev.chrisbanes.accompanist.insets.navigationBarsPadding
 import dev.chrisbanes.accompanist.insets.statusBarsPadding
 
 private val toolbarHeightDp = 48.dp
 
+@Suppress("IMPLICIT_CAST_TO_ANY")
 @Composable
 fun MangaloidToolbar(
   navController: NavHostController,
@@ -60,7 +62,8 @@ fun MangaloidToolbar(
       onToolbarButtonClicked = { toolbarButtonId ->
         when (toolbarButtonId) {
           ToolbarButtonId.NoId -> {
-            // no-op
+            // Do nothing
+            return@ToolbarContent
           }
           ToolbarButtonId.BackArrow -> {
             navController.popBackStack()
@@ -88,7 +91,13 @@ fun MangaloidToolbar(
           ToolbarButtonId.DrawerMenu -> {
             drawerViewModel.openDrawer()
           }
-        }
+          ToolbarButtonId.MangaBookmark,
+          ToolbarButtonId.MangaUnbookmark -> {
+            // no-op
+          }
+        }.exhaustive
+
+        toolbarViewModel.onToolbarButtonClicked(toolbarButtonId)
       }
     )
   }
@@ -218,6 +227,8 @@ fun RowScope.PositionToolbarButton(
   }
 
   return when (toolbarButton) {
+    is ToolbarButton.MangaChapterBookmarkButton,
+    is ToolbarButton.MangaChapterUnbookmarkButton,
     is ToolbarButton.BackArrow,
     is ToolbarButton.HamburgMenu,
     is ToolbarButton.MangaSearchButton,
@@ -236,8 +247,6 @@ fun RowScope.PositionToolbarButton(
       )
 
       Spacer(modifier = Modifier.width(4.dp))
-
-      Unit
     }
   }
 }

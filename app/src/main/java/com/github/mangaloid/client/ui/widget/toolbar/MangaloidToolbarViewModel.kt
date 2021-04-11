@@ -7,8 +7,20 @@ import kotlinx.coroutines.flow.*
 import java.util.*
 
 class MangaloidToolbarViewModel : ViewModelWithState<ToolbarState>(ToolbarState.default()) {
+  private val toolbarButtonClicksFlow = MutableSharedFlow<ToolbarButtonId>(
+    extraBufferCapacity = 16,
+  )
+
   private val toolbarStateStack = Stack<ToolbarState>()
   private val toolbarCoroutineExecutor = SerializedCoroutineExecutor(viewModelScope)
+
+  fun onToolbarButtonClicked(toolbarButtonId: ToolbarButtonId) {
+    toolbarCoroutineExecutor.post { toolbarButtonClicksFlow.emit(toolbarButtonId) }
+  }
+
+  fun listenForToolbarButtonClicks(): SharedFlow<ToolbarButtonId> {
+    return toolbarButtonClicksFlow.asSharedFlow()
+  }
 
   fun updateToolbar(updater: ToolbarState.() -> ToolbarState) {
     toolbarCoroutineExecutor.post {

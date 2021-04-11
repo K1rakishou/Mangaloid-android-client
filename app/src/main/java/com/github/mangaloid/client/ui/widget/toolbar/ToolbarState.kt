@@ -2,6 +2,7 @@ package com.github.mangaloid.client.ui.widget.toolbar
 
 import androidx.compose.runtime.Immutable
 import com.github.mangaloid.client.model.data.Manga
+import com.github.mangaloid.client.model.data.MangaMeta
 
 @Immutable
 data class ToolbarState(
@@ -57,14 +58,24 @@ data class ToolbarState(
     )
   }
 
-  fun chaptersScreenToolbar(manga: Manga): ToolbarState {
+  fun chaptersScreenToolbar(manga: Manga, mangaMeta: MangaMeta): ToolbarState {
+    val rightButtons = mutableListOf<ToolbarButton>()
+
+    rightButtons += ToolbarButton.MangaChapterSearchButton()
+
+    rightButtons += if (mangaMeta.bookmarked) {
+      ToolbarButton.MangaChapterUnbookmarkButton()
+    } else {
+      ToolbarButton.MangaChapterBookmarkButton()
+    }
+
     return copy(
       toolbarType = ToolbarType.ChaptersToolbar,
       title = manga.titles.first(),
       subtitle = "${manga.chaptersCount()} chapters",
       searchInfo = null,
       leftButton = ToolbarButton.BackArrow(ToolbarButtonId.BackArrow),
-      rightButtons = listOf(ToolbarButton.MangaChapterSearchButton())
+      rightButtons = rightButtons
     )
   }
 

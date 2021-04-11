@@ -6,6 +6,11 @@ enum class ToolbarButtonId(val id: Int) {
   MangaSearch(1),
   CloseSearch(2),
   ClearSearch(3),
-  MangaChapterSearch(4),
-  DrawerMenu(5)
+
+  // Manga chapter screen
+  MangaChapterSearch(900),
+  MangaBookmark(901),
+  MangaUnbookmark(902),
+
+  DrawerMenu(1000)
 }

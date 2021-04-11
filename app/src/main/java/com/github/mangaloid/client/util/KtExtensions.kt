@@ -3,6 +3,7 @@ package com.github.mangaloid.client.util
 import android.annotation.SuppressLint
 import android.view.View
 import android.view.ViewGroup
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.sync.Mutex
@@ -15,6 +16,9 @@ import okio.ByteString.Companion.encodeUtf8
 import okio.ByteString.Companion.toByteString
 import java.io.File
 import java.io.InputStream
+
+val <T : Any?> T.exhaustive: T
+  get() = this
 
 fun safeCapacity(initialCapacity: Int): Int {
   return if (initialCapacity < 16) {
@@ -231,4 +235,12 @@ fun HttpUrl.Builder.addEncodedQueryParameterIfNotEmpty(encodedName: String, enco
 
 suspend fun <State> MutableStateFlow<State>.updateState(stateUpdater: suspend State.() -> State) {
   this.value = stateUpdater(this.value)
+}
+
+fun Throwable.isExceptionImportant(): Boolean {
+  return when (this) {
+    is CancellationException,
+    is HttpError -> false
+    else -> true
+  }
 }

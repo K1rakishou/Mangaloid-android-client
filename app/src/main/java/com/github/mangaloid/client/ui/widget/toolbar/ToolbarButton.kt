@@ -32,6 +32,18 @@ sealed class ToolbarButton(
     iconDrawableId = R.drawable.ic_baseline_search_24
   )
 
+  class MangaChapterBookmarkButton : ToolbarButton(
+    toolbarButtonId = ToolbarButtonId.MangaBookmark,
+    contentDescription = "Bookmark manga",
+    iconDrawableId = R.drawable.ic_baseline_bookmark_border_24
+  )
+
+  class MangaChapterUnbookmarkButton : ToolbarButton(
+    toolbarButtonId = ToolbarButtonId.MangaUnbookmark,
+    contentDescription = "Unbookmark manga",
+    iconDrawableId = R.drawable.ic_baseline_bookmark_24
+  )
+
   class ClearSearchButton : ToolbarButton(
     toolbarButtonId = ToolbarButtonId.ClearSearch,
     contentDescription = "Clear search",

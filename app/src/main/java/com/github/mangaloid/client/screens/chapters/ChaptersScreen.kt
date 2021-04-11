@@ -3,12 +3,8 @@ package com.github.mangaloid.client.screens.chapters
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.AlertDialog
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -30,6 +26,7 @@ import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
 import com.github.mangaloid.client.util.StringSpanUtils
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
+import kotlinx.coroutines.flow.collect
 
 @Composable
 fun ChaptersScreen(
@@ -43,7 +40,24 @@ fun ChaptersScreen(
   )
   val chaptersScreenState by chaptersScreenViewModel.chaptersScreenViewModelState.collectAsState()
 
-  val currentManga = when (val currentMangaAsync = chaptersScreenState.currentMangaAsync) {
+  LaunchedEffect(Unit) {
+    toolbarViewModel.listenForToolbarButtonClicks()
+      .collect { toolbarButtonId ->
+        when (toolbarButtonId) {
+          ToolbarButtonId.NoId,
+          ToolbarButtonId.BackArrow,
+          ToolbarButtonId.MangaSearch,
+          ToolbarButtonId.CloseSearch,
+          ToolbarButtonId.ClearSearch,
+          ToolbarButtonId.MangaChapterSearch,
+          ToolbarButtonId.DrawerMenu -> return@collect
+          ToolbarButtonId.MangaBookmark,
+          ToolbarButtonId.MangaUnbookmark -> chaptersScreenViewModel.bookmarkUnbookmarkManga()
+        }
+      }
+  }
+
+  val fullMangaInfo = when (val currentMangaAsync = chaptersScreenState.currentFullMangaInfoAsync) {
     is AsyncData.NotInitialized -> {
       return
     }
@@ -67,6 +81,9 @@ fun ChaptersScreen(
     return@let searchInfo.query
   }
 
+  val currentManga = fullMangaInfo.manga
+  val currentMangaMeta = fullMangaInfo.mangaMeta
+
   if (!currentManga.hasChapters()) {
     ChaptersScreenEmptyContent(mangaDescriptor, toolbarViewModel)
     return
@@ -74,6 +91,7 @@ fun ChaptersScreen(
 
   ChaptersScreenContent(
     manga = currentManga,
+    mangaMeta = currentMangaMeta,
     searchQuery = searchQuery,
     toolbarViewModel = toolbarViewModel,
     onMangaChapterClicked = onMangaChapterClicked
@@ -83,12 +101,13 @@ fun ChaptersScreen(
 @Composable
 private fun ChaptersScreenContent(
   manga: Manga,
+  mangaMeta: MangaMeta,
   searchQuery: String?,
   toolbarViewModel: MangaloidToolbarViewModel,
   onMangaChapterClicked: (MangaChapterDescriptor) -> Unit
 ) {
   if (searchQuery == null) {
-    toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga) }
+    toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga, mangaMeta) }
   }
 
   Column(modifier = Modifier.fillMaxSize()) {

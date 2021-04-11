@@ -13,7 +13,11 @@ object Logger {
     if (throwable == null) {
       Log.e("${APP_TAG} | $tag", message)
     } else {
-      Log.e("${APP_TAG} | $tag", message, throwable)
+      if (throwable.isExceptionImportant()) {
+        Log.e("${APP_TAG} | $tag", message, throwable)
+      } else {
+        Log.e("${APP_TAG} | $tag", message + ", error=${throwable.errorMessageOrClassName()}")
+      }
     }
   }
 

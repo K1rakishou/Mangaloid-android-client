@@ -1,6 +1,7 @@
 package com.github.mangaloid.client.database.dao
 
 import androidx.room.*
+import com.github.mangaloid.client.database.MangaloidDatabase
 import com.github.mangaloid.client.database.entity.MangaMetaEntity
 
 @Dao
@@ -46,5 +47,15 @@ abstract class MangaMetaDao {
         ${MangaMetaEntity.COLUMN_MANGA_ID} IN (:mangaIds)
   """)
   abstract suspend fun selectByIdMany(extensionId: Long, mangaIds: Collection<Long>): List<MangaMetaEntity>
+
+  @Query("""
+    SELECT *
+    FROM ${MangaMetaEntity.TABLE_NAME}
+    WHERE 
+        ${MangaMetaEntity.COLUMN_EXTENSION_ID} = :extensionId
+    AND 
+        ${MangaMetaEntity.COLUMN_BOOKMARKED} = ${MangaloidDatabase.SQLITE_TRUE}
+  """)
+  abstract suspend fun selectAllBookmarkedByExtensionId(extensionId: Long): List<MangaMetaEntity>
 
 }
