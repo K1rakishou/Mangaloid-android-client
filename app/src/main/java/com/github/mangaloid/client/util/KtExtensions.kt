@@ -177,8 +177,10 @@ suspend fun <T> Mutex.withLockNonCancellable(owner: Any? = null, action: suspend
 }
 
 fun Throwable.errorMessageOrClassName(): String {
+  val message = cause?.message ?: message
+
   if (!message.isNullOrBlank()) {
-    return message!!
+    return message
   }
 
   return this::class.java.name

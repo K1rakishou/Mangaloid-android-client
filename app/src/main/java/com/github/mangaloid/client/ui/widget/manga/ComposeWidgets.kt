@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.model.data.Manga
+import com.github.mangaloid.client.ui.widget.MangaloidImage
 import com.github.mangaloid.client.util.StringSpanUtils
-import com.google.accompanist.coil.CoilImage
 import dev.chrisbanes.accompanist.insets.imePadding
 
 @Composable
@@ -88,10 +88,8 @@ fun MangaItemWidget(manga: Manga, searchQuery: String?, onMangaClicked: (Manga) 
       .padding(4.dp)
       .clickable { onMangaClicked(manga) }
   ) {
-
-    CoilImage(
+    MangaloidImage(
       data = manga.coverThumbnailUrl(),
-      contentDescription = null,
       contentScale = ContentScale.FillBounds,
       modifier = Modifier.aspectRatio(0.7f)
     )

@@ -18,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.R
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.model.data.*
+import com.github.mangaloid.client.ui.widget.MangaloidImage
 import com.github.mangaloid.client.ui.widget.manga.ErrorTextWidget
 import com.github.mangaloid.client.ui.widget.manga.CircularProgressIndicatorWidget
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
@@ -154,9 +155,8 @@ fun ChaptersScreenHeader(manga: Manga) {
       .fillMaxWidth()
       .wrapContentHeight()
     ) {
-      CoilImage(
+      MangaloidImage(
         data = manga.coverThumbnailUrl(),
-        contentDescription = null,
         contentScale = ContentScale.FillBounds,
         modifier = Modifier
           .width(96.dp)

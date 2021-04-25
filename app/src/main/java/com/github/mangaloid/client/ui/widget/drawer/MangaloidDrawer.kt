@@ -22,7 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.core.extension.AbstractMangaExtension
 import com.github.mangaloid.client.model.data.ExtensionId
-import com.google.accompanist.coil.CoilImage
+import com.github.mangaloid.client.ui.widget.MangaloidImage
 import dev.chrisbanes.accompanist.insets.navigationBarsPadding
 import dev.chrisbanes.accompanist.insets.statusBarsPadding
 
@@ -117,14 +117,13 @@ private fun MangaloidDrawerItem(
       .clickable { onSelected(extension.extensionId) }
       .padding(horizontal = 8.dp, vertical = 2.dp)
   ) {
-    CoilImage(
+    MangaloidImage(
       data = extension.icon,
       modifier = Modifier
         .width(42.dp)
         .height(42.dp)
         .clip(CircleShape)
         .align(Alignment.CenterVertically),
-      contentDescription = null,
       contentScale = ContentScale.FillBounds,
     )
 
