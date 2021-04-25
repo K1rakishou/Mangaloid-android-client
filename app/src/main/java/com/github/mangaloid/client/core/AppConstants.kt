@@ -5,7 +5,7 @@ object AppConstants {
   const val preferredPageImageExtension = "jpg"
   const val fileCacheDir = "filecache"
   const val fileChunksCacheDir = "file_chunks_cache"
-  const val minSearchQueryLength = 3
+  const val minSearchQueryLength = 2
 
   fun isDevBuild(): Boolean {
     return true

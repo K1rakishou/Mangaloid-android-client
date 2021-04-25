@@ -67,9 +67,9 @@ dependencies {
   implementation("androidx.compose.ui:ui:${rootProject.extra["compose_version"]}")
   implementation("androidx.compose.material:material:${rootProject.extra["compose_version"]}")
   implementation("androidx.compose.ui:ui-tooling:${rootProject.extra["compose_version"]}")
-  implementation("androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha03")
-  implementation("androidx.activity:activity-compose:1.3.0-alpha05")
-  implementation("androidx.navigation:navigation-compose:1.0.0-alpha09")
+  implementation("androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha04")
+  implementation("androidx.activity:activity-compose:1.3.0-alpha07")
+  implementation("androidx.navigation:navigation-compose:1.0.0-alpha10")
 
   implementation("com.google.android.material:material:1.3.0")
   implementation("com.google.accompanist:accompanist-pager:0.7.0")
@@ -81,9 +81,9 @@ dependencies {
   implementation("dev.chrisbanes.accompanist:accompanist-insets:0.6.2")
   implementation("joda-time:joda-time:2.10.10")
 
-  implementation("androidx.room:room-runtime:2.3.0-rc01")
-  implementation("androidx.room:room-ktx:2.3.0-rc01")
-  kapt("androidx.room:room-compiler:2.3.0-rc01")
+  implementation("androidx.room:room-runtime:2.3.0")
+  implementation("androidx.room:room-ktx:2.3.0")
+  kapt("androidx.room:room-compiler:2.3.0")
 
   testImplementation("junit:junit:4.+")
   androidTestImplementation("androidx.test.ext:junit:1.1.2")
