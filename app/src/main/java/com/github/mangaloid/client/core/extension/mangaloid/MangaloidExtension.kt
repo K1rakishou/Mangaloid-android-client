@@ -21,7 +21,7 @@ class MangaloidExtension(
   override val icon: HttpUrl
     get() = "https://avatars.githubusercontent.com/u/81382042?s=200&v=4".toHttpUrl()
 
-  val baseBackendUrl = "https://testing.mangaloid.moe/".toHttpUrl()
+  val baseBackendUrl = "https://test.cynic.moe".toHttpUrl()
 
   val baseIpfsUrl = "https://ipfs.io/ipfs".toHttpUrl()
 

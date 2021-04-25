@@ -67,6 +67,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
     onMangaChapterPagesLoaded(readerScreenViewModel)
 
     this.mangaChapterMeta = readerScreenViewModel.getMangaChapterMeta(viewableMangaChapter.mangaChapterDescriptor)
+      ?.deepCopy()
       ?: MangaChapterMeta(
         databaseId = null,
         mangaChapterDescriptor = viewableMangaChapter.mangaChapterDescriptor,
@@ -102,7 +103,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
         val viewableMangaChapter = (viewPager.adapter as? ViewPagerAdapter)?.viewableMangaChapter
           ?: return
 
-        val newMangaChapterMeta = mangaChapterMeta
+        val newMangaChapterMeta = mangaChapterMeta?.deepCopy()
           ?: return
 
         val actualPosition = viewableMangaChapter.pagesCount() - position - 1

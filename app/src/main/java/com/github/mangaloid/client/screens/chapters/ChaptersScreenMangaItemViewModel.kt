@@ -51,4 +51,8 @@ class ChaptersScreenMangaItemViewModel(
   data class MangaItemMangaChapterMetaState(
     val mangaChapterMeta: MangaChapterMeta? = null
   )
+
+  companion object {
+    private const val TAG = "ChaptersScreenMangaItemViewModel"
+  }
 }
