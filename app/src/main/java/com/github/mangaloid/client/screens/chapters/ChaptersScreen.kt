@@ -29,20 +29,25 @@ import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
 import com.github.mangaloid.client.util.Logger
 import com.github.mangaloid.client.util.StringSpanUtils
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
-import com.google.accompanist.coil.CoilImage
 import kotlinx.coroutines.flow.collect
+
+class ChaptersSearch(
+  filterableMangaChapters: FilterableMangaChapters? = null
+) {
+  var searchResults by mutableStateOf<FilterableMangaChapters?>(filterableMangaChapters)
+}
 
 @Composable
 fun ChaptersScreen(
   mangaDescriptor: MangaDescriptor,
   toolbarViewModel: MangaloidToolbarViewModel,
-  onMangaChapterClicked: (MangaChapterDescriptor) -> Unit
+  onMangaChapterClicked: (MangaChapterDescriptor) -> Unit,
+  chaptersSearch: ChaptersSearch = remember { ChaptersSearch() }
 ) {
   val chaptersScreenViewModel: ChaptersScreenViewModel = viewModel(
     key = "chapters_screen_view_model_${mangaDescriptor}",
     factory = viewModelProviderFactoryOf { ChaptersScreenViewModel(mangaDescriptor) }
   )
-  val chaptersScreenState by chaptersScreenViewModel.chaptersScreenViewModelState.collectAsState()
 
   LaunchedEffect(Unit) {
     toolbarViewModel.listenForToolbarButtonClicks()
@@ -61,21 +66,6 @@ fun ChaptersScreen(
       }
   }
 
-  val fullMangaInfo = when (val currentMangaAsync = chaptersScreenState.currentFullMangaInfoAsync) {
-    is AsyncData.NotInitialized -> {
-      return
-    }
-    is AsyncData.Loading -> {
-      CircularProgressIndicatorWidget()
-      return
-    }
-    is AsyncData.Error -> {
-      ErrorTextWidget(error = currentMangaAsync.throwable)
-      return
-    }
-    is AsyncData.Data -> currentMangaAsync.data
-  }
-
   val toolbarState by toolbarViewModel.stateViewable.collectAsState()
   val searchQuery = toolbarState.searchInfo?.let { searchInfo ->
     if (searchInfo.toolbarSearchType != ToolbarSearchType.MangaChapterSearch) {
@@ -85,8 +75,34 @@ fun ChaptersScreen(
     return@let searchInfo.query
   }
 
+  val chaptersScreenViewModelState by chaptersScreenViewModel.chaptersScreenViewModelState.collectAsState()
+
+  val fullMangaInfo = when (val currentFullMangaInfo = chaptersScreenViewModelState.currentFullMangaInfoAsync) {
+    is AsyncData.NotInitialized -> {
+      return
+    }
+    is AsyncData.Loading -> {
+      CircularProgressIndicatorWidget()
+      return
+    }
+    is AsyncData.Error -> {
+      ErrorTextWidget(error = currentFullMangaInfo.throwable)
+      return
+    }
+    is AsyncData.Data -> currentFullMangaInfo.data
+  }
+
+  if (!searchQuery.isNullOrEmpty()) {
+    LaunchedEffect(searchQuery) {
+      chaptersSearch.searchResults = chaptersScreenViewModel.applySearchQueryFilter(searchQuery)
+    }
+  } else {
+    chaptersSearch.searchResults = null
+  }
+
   val currentManga = fullMangaInfo.manga
   val currentMangaMeta = fullMangaInfo.mangaMeta
+  val filterableMangaChapters = fullMangaInfo.filterableMangaChapters
 
   if (!currentManga.hasChapters()) {
     ChaptersScreenEmptyContent(mangaDescriptor, toolbarViewModel)
@@ -96,6 +112,7 @@ fun ChaptersScreen(
   ChaptersScreenContent(
     manga = currentManga,
     mangaMeta = currentMangaMeta,
+    filterableMangaChapters = chaptersSearch.searchResults ?: filterableMangaChapters,
     searchQuery = searchQuery,
     toolbarViewModel = toolbarViewModel,
     onMangaChapterClicked = onMangaChapterClicked
@@ -106,12 +123,33 @@ fun ChaptersScreen(
 private fun ChaptersScreenContent(
   manga: Manga,
   mangaMeta: MangaMeta,
+  filterableMangaChapters: FilterableMangaChapters,
   searchQuery: String?,
   toolbarViewModel: MangaloidToolbarViewModel,
   onMangaChapterClicked: (MangaChapterDescriptor) -> Unit
 ) {
   if (searchQuery == null) {
     toolbarViewModel.updateToolbar { chaptersScreenToolbar(manga, mangaMeta) }
+  }
+
+  if (!filterableMangaChapters.hasChapters()) {
+    Column(modifier = Modifier.fillMaxSize()) {
+      if (searchQuery.isNullOrEmpty()) {
+        Text(
+          text = stringResource(R.string.no_chapters_found_for_manga, manga.mangaDescriptor.mangaId.id),
+          textAlign = TextAlign.Center
+        )
+
+        return
+      }
+
+      Text(
+        text = stringResource(R.string.no_chapters_found_by_query, searchQuery),
+        textAlign = TextAlign.Center
+      )
+    }
+
+    return
   }
 
   Column(modifier = Modifier.fillMaxSize()) {
@@ -125,13 +163,13 @@ private fun ChaptersScreenContent(
       }
 
       items(
-        count = manga.chaptersCount(),
+        count = filterableMangaChapters.chaptersCount,
         key = { index ->
-          val mangaChapterDescriptor = manga.getChapterDescriptorByIndexReversed(index)!!
+          val mangaChapterDescriptor = filterableMangaChapters.getChapterDescriptorByIndexReversed(index)!!
           return@items "MANGA_CHAPTER_${mangaChapterDescriptor}"
         }
       ) { index ->
-        val mangaChapterDescriptor = manga.getChapterDescriptorByIndexReversed(index)
+        val mangaChapterDescriptor = filterableMangaChapters.getChapterDescriptorByIndexReversed(index)
           ?: return@items
 
         MangaChapterItem(
@@ -170,7 +208,7 @@ fun ChaptersScreenHeader(
         data = manga.coverThumbnailUrl(),
         contentScale = ContentScale.FillBounds,
         modifier = Modifier
-          .width(96.dp)
+          .width(112.dp)
           .height(192.dp)
       )
 
@@ -226,7 +264,9 @@ fun ChaptersScreenHeader(
     ) {
       Text(
         text = buttonText,
-        modifier = Modifier.wrapContentWidth().fillMaxHeight(),
+        modifier = Modifier
+          .wrapContentWidth()
+          .fillMaxHeight(),
         textAlign = TextAlign.Center
       )
     }

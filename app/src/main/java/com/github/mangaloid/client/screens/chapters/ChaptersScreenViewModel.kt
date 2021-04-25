@@ -7,6 +7,7 @@ import com.github.mangaloid.client.core.data_structure.ModularResult
 import com.github.mangaloid.client.di.DependenciesGraph
 import com.github.mangaloid.client.model.cache.MangaCache
 import com.github.mangaloid.client.model.cache.MangaUpdates
+import com.github.mangaloid.client.model.data.FilterableMangaChapters
 import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.data.MangaDescriptor
 import com.github.mangaloid.client.model.data.MangaMeta
@@ -38,7 +39,8 @@ class ChaptersScreenViewModel(
 
           val fullMangaInfo = FullMangaInfo(
             manga = currentFullMangaInfoAsync.manga,
-            mangaMeta = mangaMeta.deepCopy()
+            mangaMeta = mangaMeta.deepCopy(),
+            filterableMangaChapters = currentFullMangaInfoAsync.filterableMangaChapters
           )
 
           _chaptersScreenViewModelState.updateState {
@@ -82,10 +84,13 @@ class ChaptersScreenViewModel(
       val mangaMeta = mangaCache.getMangaMeta(mangaDescriptor)
       checkNotNull(mangaMeta) { "Failed to get manga meta for $mangaDescriptor" }
 
+      val filterableMangaChapters = mangaCache.getFilterableMangaChapters(mangaDescriptor)
+
       _chaptersScreenViewModelState.updateState {
         val fullMangaInfo = FullMangaInfo(
           manga = manga.copy(),
-          mangaMeta = mangaMeta.deepCopy()
+          mangaMeta = mangaMeta.deepCopy(),
+          filterableMangaChapters = filterableMangaChapters
         )
 
         copy(currentFullMangaInfoAsync = AsyncData.Data(fullMangaInfo))
@@ -112,11 +117,32 @@ class ChaptersScreenViewModel(
     return currentMangaAsync.data
   }
 
+  suspend fun applySearchQueryFilter(searchQuery: String): FilterableMangaChapters? {
+    val currentFullMangaInfoAsync = _chaptersScreenViewModelState.value.currentFullMangaInfoAsync
+    if (currentFullMangaInfoAsync !is AsyncData.Data) {
+      return null
+    }
+
+    val fullMangaInfo = currentFullMangaInfoAsync.data
+    val filterableMangaChapters = fullMangaInfo.filterableMangaChapters
+
+    val filteredChapters = filterableMangaChapters.chapters
+      .filter { filterableMangaChapterInfo ->
+        return@filter filterableMangaChapterInfo.chapterTitle.contains(searchQuery, ignoreCase = true)
+      }
+
+    return FilterableMangaChapters(filteredChapters)
+  }
+
   data class ChaptersScreenState(
     val currentFullMangaInfoAsync: AsyncData<FullMangaInfo> = AsyncData.NotInitialized()
   )
 
-  data class FullMangaInfo(val manga: Manga, val mangaMeta: MangaMeta)
+  data class FullMangaInfo(
+    val manga: Manga,
+    val mangaMeta: MangaMeta,
+    val filterableMangaChapters: FilterableMangaChapters
+  )
 
   companion object {
     private const val TAG = "ChaptersScreenViewModel"

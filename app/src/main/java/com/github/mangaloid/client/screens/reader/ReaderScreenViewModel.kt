@@ -51,6 +51,14 @@ class ReaderScreenViewModel(
     Logger.d(TAG, "getMangaChapterInternal($mangaChapterDescriptor)")
     updateState { copy(currentMangaChapterAsync = AsyncData.Loading()) }
 
+    mangaRepository.updateMangaMeta(mangaChapterDescriptor.mangaDescriptor) { oldMangaMeta ->
+      oldMangaMeta.deepCopy(lastViewedChapterId = mangaChapterDescriptor.mangaChapterId)
+    }
+      .peekError { error ->
+        Logger.e(TAG, "mangaRepository.updateMangaMeta(${mangaChapterDescriptor.mangaDescriptor}) error", error)
+      }
+      .ignore()
+
     val mangaChapterResult = mangaRepository.getMangaChapter(mangaChapterDescriptor)
     if (mangaChapterResult is ModularResult.Error) {
       Logger.e(TAG, "getMangaChapterInternal($mangaChapterDescriptor) " +
@@ -80,14 +88,6 @@ class ReaderScreenViewModel(
 
       return
     }
-
-    mangaRepository.updateMangaMeta(mangaChapterDescriptor.mangaDescriptor) { oldMangaMeta ->
-      oldMangaMeta.deepCopy(lastViewedChapterId = mangaChapterDescriptor.mangaChapterId)
-    }
-      .peekError { error ->
-        Logger.e(TAG, "mangaRepository.updateMangaMeta(${mangaChapterDescriptor.mangaDescriptor}) error", error)
-      }
-      .ignore()
 
     updateState {
       val updatedMangaChapter = (updatedMangaChapterResult as ModularResult.Value).value

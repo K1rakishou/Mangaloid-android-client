@@ -125,8 +125,7 @@ class MangaCache(
         ?.get(mangaId)
         ?: return@withLock
 
-      val mangaChapterDescriptors = mangaChapters.map { mangaChapter -> mangaChapter.mangaChapterDescriptor }
-      manga.replaceChapterDescriptors(mangaChapterDescriptors)
+      manga.onChaptersUpdated(mangaChapters.size)
 
       mangaChapters.forEach { mangaChapter ->
         val mangaDescriptor = mangaChapter.mangaChapterDescriptor.mangaDescriptor
@@ -174,6 +173,16 @@ class MangaCache(
     return mutex.withLock {
       return@withLock mangaChapterCache[mangaChapterDescriptor.mangaDescriptor]
         ?.firstOrNull { mangaChapter -> mangaChapter.mangaChapterDescriptor == mangaChapterDescriptor }
+    }
+  }
+
+  suspend fun getFilterableMangaChapters(mangaDescriptor: MangaDescriptor): FilterableMangaChapters {
+    return mutex.withLock {
+      val chapters = mangaChapterCache[mangaDescriptor]
+        ?.map { mangaChapter -> FilterableMangaChapterInfo(mangaChapter.mangaChapterDescriptor, mangaChapter.title) }
+        ?: emptyList()
+
+      return@withLock FilterableMangaChapters(chapters)
     }
   }
 

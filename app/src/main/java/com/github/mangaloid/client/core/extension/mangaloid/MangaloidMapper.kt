@@ -26,7 +26,7 @@ object MangaloidMapper {
       anilistId = mangaRemote.anilistId,
       mangaUpdatesId = mangaRemote.mangaUpdatesId,
       coversUrl = coversUrl,
-      chapterDescriptors = mutableListWithCap(16)
+      chaptersCount = 0
     )
   }
 

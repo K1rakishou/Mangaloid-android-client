@@ -18,7 +18,7 @@ data class Manga(
   val anilistId: Int,
   val mangaUpdatesId: Int,
   val coversUrl: HttpUrl,
-  private val chapterDescriptors: MutableList<MangaChapterDescriptor>,
+  private var chaptersCount: Int,
 ) {
   private val lastChaptersUpdateTime = AtomicLong(0)
 
@@ -32,34 +32,15 @@ data class Manga(
   val fullAuthorsString by lazy { authors.joinToString() }
   val fullGenresString by lazy { genres.joinToString() }
 
-  @Synchronized
-  fun replaceChapterDescriptors(newChapterDescriptors: List<MangaChapterDescriptor>) {
-    if (newChapterDescriptors.isEmpty()) {
-      return
-    }
-
-    newChapterDescriptors.forEach { newChapter ->
-      check(newChapter.extensionId == extensionId) { "ExtensionIds differ!" }
-      check(newChapter.mangaId == mangaId) { "MangaIds differ!" }
-    }
-
-    this.chapterDescriptors.clear()
-    this.chapterDescriptors.addAll(newChapterDescriptors)
-
+  fun onChaptersUpdated(newChaptersCount: Int) {
+    this.chaptersCount = newChaptersCount
     lastChaptersUpdateTime.set(System.currentTimeMillis())
   }
 
-  @Synchronized
-  fun chaptersCount(): Int = chapterDescriptors.size
+  fun chaptersCount(): Int = chaptersCount
 
-  @Synchronized
   fun hasChapters(): Boolean {
-    return chapterDescriptors.isNotEmpty()
-  }
-
-  @Synchronized
-  fun getChapterDescriptorByIndexReversed(index: Int): MangaChapterDescriptor? {
-    return chapterDescriptors.getOrNull(chapterDescriptors.lastIndex - index)
+    return chaptersCount > 0
   }
 
   fun needChaptersUpdate(): Boolean {

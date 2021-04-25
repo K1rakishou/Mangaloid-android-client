@@ -104,7 +104,8 @@ fun MangaItemWidget(manga: Manga, searchQuery: String?, onMangaClicked: (Manga) 
       Text(
         text = annotatedTitle,
         overflow = TextOverflow.Ellipsis,
-        fontWeight = FontWeight.SemiBold
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp
       )
 
       Spacer(modifier = Modifier.weight(1f))
@@ -113,7 +114,7 @@ fun MangaItemWidget(manga: Manga, searchQuery: String?, onMangaClicked: (Manga) 
       if (manga.chaptersCount() > 0) {
         Text(
           text = stringResource(R.string.manga_chapters, manga.chaptersCount()),
-          fontSize = 14.sp
+          fontSize = 12.sp
         )
       }
     }
