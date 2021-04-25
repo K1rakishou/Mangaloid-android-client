@@ -83,9 +83,9 @@ object DependenciesGraph {
     appContext = application
 
     okHttpClient = OkHttpClient.Builder()
-      .readTimeout(20, TimeUnit.SECONDS)
-      .writeTimeout(20, TimeUnit.SECONDS)
-      .connectTimeout(20, TimeUnit.SECONDS)
+      .readTimeout(45, TimeUnit.SECONDS)
+      .writeTimeout(45, TimeUnit.SECONDS)
+      .connectTimeout(45, TimeUnit.SECONDS)
       .dns(MangaloidDnsSelector())
       .build()
 
