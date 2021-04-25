@@ -53,29 +53,25 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   suspend fun onMangaLoadProgress() {
     asyncDataView.changeState(AsyncDataView.State.Loading)
     asyncDataView.onTap { onViewablePageTapped() }
+    asyncDataView.onErrorButtonClicked(null)
   }
 
-  suspend fun onMangaLoadError(throwable: Throwable) {
+  suspend fun onMangaLoadError(throwable: Throwable, onErrorButtonClicked: (() -> Unit)) {
     asyncDataView.changeState(AsyncDataView.State.Error(throwable))
     asyncDataView.onTap { onViewablePageTapped() }
+    asyncDataView.onErrorButtonClicked { onErrorButtonClicked() }
   }
 
   suspend fun onMangaLoaded(viewableMangaChapter: ViewableMangaChapter) {
     asyncDataView.changeState(AsyncDataView.State.Success(R.layout.reader_screen_pager_with_images))
     asyncDataView.onTap(null)
+    asyncDataView.onErrorButtonClicked(null)
 
     onMangaChapterPagesLoaded(readerScreenViewModel)
 
-    this.mangaChapterMeta = readerScreenViewModel.getMangaChapterMeta(viewableMangaChapter.mangaChapterDescriptor)
-      ?.deepCopy()
-      ?: MangaChapterMeta(
-        databaseId = null,
-        mangaChapterDescriptor = viewableMangaChapter.mangaChapterDescriptor,
-        lastViewedPageIndex = LastViewedPageIndex(
-          lastViewedPageIndex = 0,
-          lastReadPageIndex = 0
-        )
-      )
+    this.mangaChapterMeta = readerScreenViewModel.getOrCreateMangaChapterMeta(
+      viewableMangaChapter.mangaChapterDescriptor
+    ).deepCopy()
 
     val pageIndex = viewableMangaChapter.coercePositionInActualPagesRange(
       mangaChapterMeta!!.lastViewedPageIndex.lastViewedPageIndex
@@ -102,18 +98,21 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
       override fun onPageSelected(position: Int) {
         val viewableMangaChapter = (viewPager.adapter as? ViewPagerAdapter)?.viewableMangaChapter
           ?: return
-
-        val newMangaChapterMeta = mangaChapterMeta?.deepCopy()
+        val mangaChapterDescriptor = mangaChapterMeta?.mangaChapterDescriptor
           ?: return
 
         val actualPosition = viewableMangaChapter.pagesCount() - position - 1
 
-        newMangaChapterMeta.lastViewedPageIndex.update(
-          newLastViewedPageIndex = viewableMangaChapter.coercePositionInActualPagesRange(actualPosition),
-          newLastReadPageIndex = viewableMangaChapter.coercePositionInActualPagesRange(actualPosition)
+        val updatedLastViewedPageIndex = LastViewedPageIndex(
+          lastViewedPageIndex = viewableMangaChapter.coercePositionInActualPagesRange(actualPosition),
+          lastReadPageIndex = viewableMangaChapter.coercePositionInActualPagesRange(actualPosition)
         )
 
-        readerScreenViewModel.updateMangaChapterMeta(newMangaChapterMeta)
+        readerScreenViewModel.updateChapterLastViewedPageIndex(
+          mangaChapterDescriptor = mangaChapterDescriptor,
+          updatedLastViewedPageIndex = updatedLastViewedPageIndex
+        )
+
         updatePageIndicator(actualPosition, viewableMangaChapter)
       }
     })

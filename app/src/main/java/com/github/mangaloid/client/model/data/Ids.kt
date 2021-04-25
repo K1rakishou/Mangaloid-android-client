@@ -29,10 +29,15 @@ inline class MangaId(val id: Long) {
 }
 
 inline class MangaChapterId(val id: Long) {
+  fun isZeroChapter(): Boolean = id <= 0L
+
   companion object {
-    fun fromRawValueOrNull(value: Long?): MangaChapterId? {
-      if (value == null || value < 0) {
-        return null
+    fun defaultZeroChapter() = MangaChapterId(0L)
+    fun firstChapter() = MangaChapterId(1L)
+
+    fun fromRawValueOrNull(value: Long?): MangaChapterId {
+      if (value == null || value <= 0) {
+        return defaultZeroChapter()
       }
 
       return MangaChapterId(value)

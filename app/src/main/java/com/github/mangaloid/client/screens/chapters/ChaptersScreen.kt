@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.Text
+import androidx.compose.material.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -11,6 +12,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,6 +26,7 @@ import com.github.mangaloid.client.ui.widget.manga.CircularProgressIndicatorWidg
 import com.github.mangaloid.client.ui.widget.toolbar.MangaloidToolbarViewModel
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarButtonId
 import com.github.mangaloid.client.ui.widget.toolbar.ToolbarSearchType
+import com.github.mangaloid.client.util.Logger
 import com.github.mangaloid.client.util.StringSpanUtils
 import com.github.mangaloid.client.util.viewModelProviderFactoryOf
 import com.google.accompanist.coil.CoilImage
@@ -114,7 +117,11 @@ private fun ChaptersScreenContent(
   Column(modifier = Modifier.fillMaxSize()) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
       item("HEADER") {
-        ChaptersScreenHeader(manga)
+        ChaptersScreenHeader(
+          manga = manga,
+          mangaMeta = mangaMeta,
+          onOpenChapterClick = onMangaChapterClicked
+        )
       }
 
       items(
@@ -138,7 +145,11 @@ private fun ChaptersScreenContent(
 }
 
 @Composable
-fun ChaptersScreenHeader(manga: Manga) {
+fun ChaptersScreenHeader(
+  manga: Manga,
+  mangaMeta: MangaMeta,
+  onOpenChapterClick: (MangaChapterDescriptor) -> Unit
+) {
   val heightModifier = if (manga.description != null && manga.description.isNotEmpty()) {
     Modifier.height(500.dp)
   } else {
@@ -187,6 +198,36 @@ fun ChaptersScreenHeader(manga: Manga) {
           .fillMaxWidth()
           .wrapContentHeight(),
         overflow = TextOverflow.Ellipsis
+      )
+    }
+
+    Logger.d("ChaptersScreen", "mangaMeta.lastViewedChapterId=${mangaMeta.lastViewedChapterId}")
+
+    val buttonText = if (mangaMeta.isNotReading()) {
+      stringResource(R.string.start_reading_manga)
+    } else {
+      stringResource(R.string.continue_reading_manga)
+    }
+
+    TextButton(
+      modifier = Modifier
+        .wrapContentWidth()
+        .height(42.dp)
+        .align(Alignment.End),
+      onClick = {
+        val mangaChapterId = if (mangaMeta.isNotReading()) {
+          MangaChapterId.firstChapter()
+        } else {
+          mangaMeta.lastViewedChapterId
+        }
+
+        onOpenChapterClick(MangaChapterDescriptor(mangaMeta.mangaDescriptor, mangaChapterId))
+      }
+    ) {
+      Text(
+        text = buttonText,
+        modifier = Modifier.wrapContentWidth().fillMaxHeight(),
+        textAlign = TextAlign.Center
       )
     }
   }

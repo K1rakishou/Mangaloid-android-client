@@ -14,16 +14,12 @@ abstract class MangaChapterMetaDao {
 
   @Transaction
   open suspend fun createNewOrUpdate(mangaChapterMetaEntity: MangaChapterMetaEntity): Long {
-    if (mangaChapterMetaEntity.id == 0L) {
-      val prev = selectById(mangaChapterMetaEntity.ownerMangaMetaId, mangaChapterMetaEntity.mangaChapterId)
-      if (prev == null) {
-        return createNew(mangaChapterMetaEntity)
-      }
+    val prev = selectById(mangaChapterMetaEntity.ownerMangaMetaId, mangaChapterMetaEntity.mangaChapterId)
+      ?: return createNew(mangaChapterMetaEntity)
 
-      mangaChapterMetaEntity.id = prev.id
-    }
-
+    mangaChapterMetaEntity.id = prev.id
     update(mangaChapterMetaEntity)
+
     return mangaChapterMetaEntity.id
   }
 

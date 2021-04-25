@@ -11,6 +11,7 @@ import com.github.mangaloid.client.model.data.Manga
 import com.github.mangaloid.client.model.data.MangaDescriptor
 import com.github.mangaloid.client.model.data.MangaMeta
 import com.github.mangaloid.client.model.repository.MangaRepository
+import com.github.mangaloid.client.util.Logger
 import com.github.mangaloid.client.util.updateState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +38,7 @@ class ChaptersScreenViewModel(
 
           val fullMangaInfo = FullMangaInfo(
             manga = currentFullMangaInfoAsync.manga,
-            mangaMeta = mangaMeta.copy()
+            mangaMeta = mangaMeta.deepCopy()
           )
 
           _chaptersScreenViewModelState.updateState {
@@ -84,7 +85,7 @@ class ChaptersScreenViewModel(
       _chaptersScreenViewModelState.updateState {
         val fullMangaInfo = FullMangaInfo(
           manga = manga.copy(),
-          mangaMeta = mangaMeta.copy()
+          mangaMeta = mangaMeta.deepCopy()
         )
 
         copy(currentFullMangaInfoAsync = AsyncData.Data(fullMangaInfo))
@@ -94,13 +95,11 @@ class ChaptersScreenViewModel(
 
   fun bookmarkUnbookmarkManga() {
     viewModelScope.launch {
-      val currentFullMangaInfoAsync = getCurrentFullMangaInfoOrNull()
-        ?: return@launch
-
-      val currentMangaMeta = currentFullMangaInfoAsync.mangaMeta
-      val updatedMangaMeta = currentMangaMeta.copy(bookmarked = currentMangaMeta.bookmarked.not())
-
-      mangaRepository.updateMangaMeta(updatedMangaMeta)
+      mangaRepository.updateMangaMeta(mangaDescriptor) { oldMangaMeta ->
+        oldMangaMeta.deepCopy(bookmarked = oldMangaMeta.bookmarked.not())
+      }
+        .peekError { error -> Logger.e(TAG, "mangaRepository.updateMangaMeta($mangaDescriptor) error", error) }
+        .ignore()
     }
   }
 
@@ -118,4 +117,8 @@ class ChaptersScreenViewModel(
   )
 
   data class FullMangaInfo(val manga: Manga, val mangaMeta: MangaMeta)
+
+  companion object {
+    private const val TAG = "ChaptersScreenViewModel"
+  }
 }

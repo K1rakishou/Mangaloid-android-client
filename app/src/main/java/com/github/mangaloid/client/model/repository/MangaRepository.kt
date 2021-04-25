@@ -259,70 +259,57 @@ class MangaRepository(
     }
   }
 
-  suspend fun updateMangaMeta(mangaMeta: MangaMeta): ModularResult<Unit> {
+  suspend fun updateMangaMeta(
+    mangaDescriptor: MangaDescriptor,
+    updater: suspend (MangaMeta) -> MangaMeta
+  ): ModularResult<Unit> {
     return repoAsync {
       return@repoAsync ModularResult.Try {
-        val fromCache = mangaCache.getMangaMeta(mangaMeta.mangaDescriptor)
-        if (fromCache == mangaMeta) {
-          return@Try
-        }
-
-        Logger.d(TAG, "updateMangaMeta(mangaMeta=${mangaMeta.mangaDescriptor})")
+        Logger.d(TAG, "updateMangaMeta(mangaDescriptor=${mangaDescriptor})")
+        val updatedMangaMeta = updater(mangaCache.getOrCreateMangaMeta(mangaDescriptor))
 
         val mangaMetaEntity = MangaMetaEntity(
-          id = mangaMeta.databaseId ?: 0L,
-          extensionId = mangaMeta.mangaDescriptor.extensionId.id,
-          mangaId = mangaMeta.mangaDescriptor.mangaId.id,
-          bookmarked = mangaMeta.bookmarked
+          id = updatedMangaMeta.databaseId ?: 0L,
+          extensionId = updatedMangaMeta.mangaDescriptor.extensionId.id,
+          mangaId = updatedMangaMeta.mangaDescriptor.mangaId.id,
+          bookmarked = updatedMangaMeta.bookmarked,
+          lastViewedChapterId = updatedMangaMeta.lastViewedChapterId.id
         )
 
         val databaseId = mangaloidDatabase.mangaMetaDao().createNewOrUpdate(mangaMetaEntity)
-        if (databaseId >= 0L) {
-          mangaMeta.databaseId = databaseId
-        }
+        require(databaseId >= 0L) { "Bad databaseId: ${databaseId}" }
+        updatedMangaMeta.databaseId = databaseId
 
-        mangaCache.putMangaMeta(mangaMeta)
+        mangaCache.putMangaMeta(updatedMangaMeta)
       }
     }
   }
 
-  suspend fun updateMangaChapterMeta(mangaChapterMeta: MangaChapterMeta): ModularResult<Unit> {
+  suspend fun updateMangaChapterMeta(
+    mangaChapterDescriptor: MangaChapterDescriptor,
+    updater: suspend (MangaChapterMeta) -> MangaChapterMeta
+  ): ModularResult<Unit> {
     return repoAsync {
       return@repoAsync ModularResult.Try {
-        val cachedMangaChapterMeta = mangaCache.getMangaChapterMeta(mangaChapterMeta.mangaChapterDescriptor)
-        if (cachedMangaChapterMeta == mangaChapterMeta) {
-          return@Try
-        }
-
-        val cachedMangaMeta = mangaCache.getMangaMeta(mangaChapterMeta.mangaChapterDescriptor.mangaDescriptor)
-        val mangaMetaDatabaseId = cachedMangaMeta?.databaseId
-
-        if (cachedMangaMeta == null || mangaMetaDatabaseId == null || mangaMetaDatabaseId < 0) {
-          // TODO: 4/10/2021 get it from the DB?
-          Logger.e(TAG, "updateMangaChapterMeta(mangaChapterDescriptor=${mangaChapterMeta.mangaChapterDescriptor}) " +
-            "bad mangaMetaDatabaseId: ${mangaMetaDatabaseId}")
-          return@Try
-        }
-
-        Logger.d(TAG, "updateMangaChapterMeta(mangaChapterDescriptor=${mangaChapterMeta.mangaChapterDescriptor})")
+        Logger.d(TAG, "updateMangaChapterMeta(mangaChapterDescriptor=${mangaChapterDescriptor})")
+        val updatedMangaChapterMeta = updater(mangaCache.getOrCreateMangaChapterMeta(mangaChapterDescriptor))
 
         val mangaChapterMetaEntity = MangaChapterMetaEntity(
-          id = mangaChapterMeta.databaseId ?: 0L,
-          ownerMangaMetaId = mangaMetaDatabaseId,
-          mangaChapterId = mangaChapterMeta.mangaChapterDescriptor.mangaChapterId.id,
-          lastViewedChapterPageIndex = mangaChapterMeta.lastViewedPageIndex.lastViewedPageIndex,
+          id = updatedMangaChapterMeta.databaseId ?: 0L,
+          ownerMangaMetaId = updatedMangaChapterMeta.mangaChapterDescriptor.mangaId.id,
+          mangaChapterId = updatedMangaChapterMeta.mangaChapterDescriptor.mangaChapterId.id,
+          lastViewedChapterPageIndex = updatedMangaChapterMeta.lastViewedPageIndex.lastViewedPageIndex,
           lastReadChapterPageIndex = Math.max(
-            cachedMangaChapterMeta?.lastViewedPageIndex?.lastReadPageIndex ?: 0,
-            mangaChapterMeta.lastViewedPageIndex.lastReadPageIndex
+            updatedMangaChapterMeta.lastViewedPageIndex.lastReadPageIndex,
+            updatedMangaChapterMeta.lastViewedPageIndex.lastReadPageIndex
           )
         )
 
         val databaseId = mangaloidDatabase.mangaChapterMetaDao().createNewOrUpdate(mangaChapterMetaEntity)
-        if (databaseId >= 0L) {
-          mangaChapterMeta.databaseId = databaseId
-        }
+        require(databaseId >= 0L) { "Bad databaseId: ${databaseId}" }
+        updatedMangaChapterMeta.databaseId = databaseId
 
-        mangaCache.putMangaChapterMeta(mangaChapterMeta)
+        mangaCache.putMangaChapterMeta(updatedMangaChapterMeta)
       }
     }
   }
@@ -345,16 +332,20 @@ class MangaRepository(
 
       var mangaMeta = mangaMetaEntityList
         .firstOrNull { mangaMetaEntity -> mangaMetaEntity.mangaId == manga.mangaId.id }
-        ?.let { mangaMetaEntity -> MangaMeta(mangaMetaEntity.id, manga.mangaDescriptor, mangaMetaEntity.bookmarked) }
+        ?.let { mangaMetaEntity ->
+          return@let MangaMeta(
+            databaseId = mangaMetaEntity.id,
+            mangaDescriptor = manga.mangaDescriptor,
+            bookmarked = mangaMetaEntity.bookmarked,
+            lastViewedChapterId = MangaChapterId.fromRawValueOrNull(mangaMetaEntity.lastViewedChapterId)
+          )
+        }
 
       if (mangaMeta == null) {
-        mangaMeta = MangaMeta(
-          databaseId = null,
-          mangaDescriptor = manga.mangaDescriptor,
-          bookmarked = false
-        )
+        mangaMeta = MangaMeta.createNew(manga.mangaDescriptor)
       }
 
+      Logger.d(TAG, "preloadMangaMeta mangaMeta=$mangaMeta")
       mangaCache.putMangaMeta(mangaMeta)
     }
   }
@@ -391,14 +382,7 @@ class MangaRepository(
         }
 
       if (mangaChapterMeta == null) {
-        mangaChapterMeta = MangaChapterMeta(
-          databaseId = null,
-          mangaChapterDescriptor = mangaChapter.mangaChapterDescriptor,
-          lastViewedPageIndex = LastViewedPageIndex(
-            lastViewedPageIndex = 0,
-            lastReadPageIndex = 0
-          )
-        )
+        mangaChapterMeta = MangaChapterMeta.createNew(mangaChapter.mangaChapterDescriptor)
       }
 
       mangaCache.putMangaChapterMeta(mangaChapterMeta)
@@ -429,7 +413,8 @@ class MangaRepository(
             return@let MangaMeta(
               databaseId = mangaMetaEntity.id,
               mangaDescriptor = mangaDescriptor,
-              bookmarked = mangaMetaEntity.bookmarked
+              bookmarked = mangaMetaEntity.bookmarked,
+              lastViewedChapterId = MangaChapterId.fromRawValueOrNull(mangaMetaEntity.lastViewedChapterId)
             )
           }
 
@@ -444,7 +429,8 @@ class MangaRepository(
           id = 0L,
           extensionId = extensionId.id,
           mangaId = mangaId.id,
-          bookmarked = false
+          bookmarked = false,
+          lastViewedChapterId = MangaChapterId.defaultZeroChapter().id
         )
 
         var databaseId = mangaloidDatabase.mangaMetaDao().createNew(mangaMetaEntity)
@@ -461,7 +447,8 @@ class MangaRepository(
         val newMangaMeta = MangaMeta(
           databaseId = databaseId,
           mangaDescriptor = mangaDescriptor,
-          bookmarked = false
+          bookmarked = false,
+          lastViewedChapterId = MangaChapterId.defaultZeroChapter()
         )
 
         mangaCache.putMangaMeta(newMangaMeta)

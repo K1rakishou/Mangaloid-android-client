@@ -35,6 +35,20 @@ class MangaCache(
     return mutex.withLock { mangaMetaCache.containsKey(mangaDescriptor) }
   }
 
+  suspend fun getOrCreateMangaMeta(mangaDescriptor: MangaDescriptor): MangaMeta {
+    return mutex.withLock {
+      var mangaMeta = mangaMetaCache.get(mangaDescriptor)
+      if (mangaMeta != null) {
+        return@withLock mangaMeta
+      }
+
+      mangaMeta = MangaMeta.createNew(mangaDescriptor)
+      mangaMetaCache.put(mangaDescriptor, mangaMeta)
+
+      return@withLock mangaMeta
+    }
+  }
+
   suspend fun getMangaMeta(mangaDescriptor: MangaDescriptor): MangaMeta? {
     return mutex.withLock { mangaMetaCache.get(mangaDescriptor) }
   }
@@ -56,6 +70,20 @@ class MangaCache(
 
   suspend fun containsMangaChapterMeta(mangaChapterDescriptor: MangaChapterDescriptor): Boolean {
     return mutex.withLock { mangaChapterMetaCache.containsKey(mangaChapterDescriptor) }
+  }
+
+  suspend fun getOrCreateMangaChapterMeta(mangaChapterDescriptor: MangaChapterDescriptor): MangaChapterMeta {
+    return mutex.withLock {
+      var mangaChapterMeta = mangaChapterMetaCache.get(mangaChapterDescriptor)
+      if (mangaChapterMeta != null) {
+        return@withLock mangaChapterMeta
+      }
+
+      mangaChapterMeta = MangaChapterMeta.createNew(mangaChapterDescriptor)
+      mangaChapterMetaCache.put(mangaChapterDescriptor, mangaChapterMeta)
+
+      return@withLock mangaChapterMeta
+    }
   }
 
   suspend fun getMangaChapterMeta(mangaChapterDescriptor: MangaChapterDescriptor): MangaChapterMeta? {

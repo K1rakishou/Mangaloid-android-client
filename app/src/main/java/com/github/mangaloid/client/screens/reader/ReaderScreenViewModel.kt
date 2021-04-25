@@ -33,12 +33,25 @@ class ReaderScreenViewModel(
     }
   }
 
+  fun reloadMangaChapter() {
+    viewModelScope.launch {
+      val currentMangaChapterAsync = currentState().currentMangaChapterAsync
+
+      val mangaChapterDescriptor =  if (currentMangaChapterAsync !is AsyncData.Data) {
+        initialMangaChapterDescriptor
+      } else {
+        currentMangaChapterAsync.data.mangaChapterDescriptor
+      }
+
+      getMangaChapterInternal(mangaChapterDescriptor)
+    }
+  }
+
   private suspend fun getMangaChapterInternal(mangaChapterDescriptor: MangaChapterDescriptor) {
     Logger.d(TAG, "getMangaChapterInternal($mangaChapterDescriptor)")
     updateState { copy(currentMangaChapterAsync = AsyncData.Loading()) }
 
     val mangaChapterResult = mangaRepository.getMangaChapter(mangaChapterDescriptor)
-
     if (mangaChapterResult is ModularResult.Error) {
       Logger.e(TAG, "getMangaChapterInternal($mangaChapterDescriptor) " +
         "getMangaChapter error", mangaChapterResult.error)
@@ -67,6 +80,14 @@ class ReaderScreenViewModel(
 
       return
     }
+
+    mangaRepository.updateMangaMeta(mangaChapterDescriptor.mangaDescriptor) { oldMangaMeta ->
+      oldMangaMeta.deepCopy(lastViewedChapterId = mangaChapterDescriptor.mangaChapterId)
+    }
+      .peekError { error ->
+        Logger.e(TAG, "mangaRepository.updateMangaMeta(${mangaChapterDescriptor.mangaDescriptor}) error", error)
+      }
+      .ignore()
 
     updateState {
       val updatedMangaChapter = (updatedMangaChapterResult as ModularResult.Value).value
@@ -206,16 +227,21 @@ class ReaderScreenViewModel(
     return resultPages
   }
 
-  fun updateMangaChapterMeta(mangaChapterMeta: MangaChapterMeta) {
+  fun updateChapterLastViewedPageIndex(
+    mangaChapterDescriptor: MangaChapterDescriptor,
+    updatedLastViewedPageIndex: LastViewedPageIndex
+  ) {
     updateMangaChapterExecutor.post(UPDATE_TIMEOUT_MS) {
-      mangaRepository.updateMangaChapterMeta(mangaChapterMeta)
-        .peekError { error -> Logger.e(TAG, "updateMangaChapterMeta($mangaChapterMeta) error", error) }
+      mangaRepository.updateMangaChapterMeta(mangaChapterDescriptor) { oldMangaChapterMeta ->
+        oldMangaChapterMeta.deepCopy(lastViewedPageIndex = updatedLastViewedPageIndex)
+      }
+        .peekError { error -> Logger.e(TAG, "updateMangaChapterMeta($mangaChapterDescriptor) error", error) }
         .ignore()
     }
   }
 
-  suspend fun getMangaChapterMeta(mangaChapterDescriptor: MangaChapterDescriptor): MangaChapterMeta? {
-    return mangaCache.getMangaChapterMeta(mangaChapterDescriptor)
+  suspend fun getOrCreateMangaChapterMeta(mangaChapterDescriptor: MangaChapterDescriptor): MangaChapterMeta {
+    return mangaCache.getOrCreateMangaChapterMeta(mangaChapterDescriptor)
   }
 
   data class ReaderScreenState(

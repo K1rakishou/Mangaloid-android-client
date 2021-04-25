@@ -31,6 +31,9 @@ There are many variations of passages of Lorem Ipsum available, but the majority
     <string name="manga_library_is_empty">Library is empty</string>
     <string name="no_manga_found_by_query">No manga found by query \'%1$s\'</string>
 
+    <string name="start_reading_manga">Start reading</string>
+    <string name="continue_reading_manga">Continue reading</string>
+
     <string name="manga_chapters">Chapters: %1$d</string>
     <string name="manga_type">Type: %1$s</string>
     <string name="manga_country">Country: %1$s</string>

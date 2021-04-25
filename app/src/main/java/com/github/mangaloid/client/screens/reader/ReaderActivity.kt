@@ -56,7 +56,9 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
             readerViewPager.onMangaLoadProgress()
           }
           is AsyncData.Error -> {
-            readerViewPager.onMangaLoadError(currentMangaChapterAsync.throwable)
+            readerViewPager.onMangaLoadError(currentMangaChapterAsync.throwable) {
+              readerScreenViewModel.reloadMangaChapter()
+            }
           }
           is AsyncData.Data -> {
             readerViewPager.onMangaLoaded(currentMangaChapterAsync.data,)

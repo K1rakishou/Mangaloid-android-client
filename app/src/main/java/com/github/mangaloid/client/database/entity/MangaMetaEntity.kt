@@ -23,7 +23,9 @@ data class MangaMetaEntity(
   @ColumnInfo(name = COLUMN_MANGA_ID)
   val mangaId: Long,
   @ColumnInfo(name = COLUMN_BOOKMARKED)
-  val bookmarked: Boolean = false
+  val bookmarked: Boolean,
+  @ColumnInfo(name = COLUMN_LAST_VIEWED_CHAPTER_ID)
+  val lastViewedChapterId: Long? = null,
 ) {
 
   companion object {
@@ -33,5 +35,6 @@ data class MangaMetaEntity(
     const val COLUMN_EXTENSION_ID = "extension_id"
     const val COLUMN_MANGA_ID = "manga_id"
     const val COLUMN_BOOKMARKED = "bookmarked"
+    const val COLUMN_LAST_VIEWED_CHAPTER_ID = "last_viewed_chapter_id"
   }
 }

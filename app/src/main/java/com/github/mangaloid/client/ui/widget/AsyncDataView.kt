@@ -12,7 +12,11 @@ class AsyncDataView @JvmOverloads constructor(
   attributeSet: AttributeSet? = null,
   defAttrStyle: Int = 0
 ) : FrameLayout(context, attributeSet, defAttrStyle) {
-  private var currentState: State = State.Uninitialized
+  private val loadingView = inflate(context, R.layout.async_data_loading_view, null)
+  private val errorView = inflate(context, R.layout.async_data_error_view, null)
+
+  private var errorText = errorView.findViewById<TextView>(R.id.error_text)
+  private var retryButton = errorView.findViewById<TextView>(R.id.retry_button)
 
   fun onTap(func: (() -> Unit)?) {
     if (func == null) {
@@ -23,11 +27,18 @@ class AsyncDataView @JvmOverloads constructor(
     this.setOnClickListener { func() }
   }
 
-  suspend fun changeState(newState: State) {
-    if (currentState == newState) {
+  fun onErrorButtonClicked(func: (() -> Unit)?) {
+    if (func == null) {
+      retryButton.setOnClickListener(null)
       return
     }
 
+    retryButton.setOnClickListener {
+      func()
+    }
+  }
+
+  suspend fun changeState(newState: State) {
     removeAllViews()
 
     when (newState) {
@@ -35,11 +46,11 @@ class AsyncDataView @JvmOverloads constructor(
         // no-op
       }
       State.Loading -> {
-        inflate(context, R.layout.async_data_loading_view, this)
+        addView(loadingView)
       }
       is State.Error -> {
-        inflate(context, R.layout.async_data_error_view, this)
-        findViewById<TextView>(R.id.error_text).text = newState.throwable.toString()
+        addView(errorView)
+        errorText.text = newState.throwable.toString()
       }
       is State.Success -> {
         inflate(context, newState.resultViewId, this)

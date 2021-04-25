@@ -15,16 +15,12 @@ abstract class MangaMetaDao {
 
   @Transaction
   open suspend fun createNewOrUpdate(mangaMetaEntity: MangaMetaEntity): Long {
-    if (mangaMetaEntity.id == 0L) {
-      val prev = selectById(mangaMetaEntity.extensionId, mangaMetaEntity.mangaId)
-      if (prev == null) {
-        return createNew(mangaMetaEntity)
-      }
+    val prev = selectById(mangaMetaEntity.extensionId, mangaMetaEntity.mangaId)
+      ?: return createNew(mangaMetaEntity)
 
-      mangaMetaEntity.id = prev.id
-    }
-
+    mangaMetaEntity.id = prev.id
     update(mangaMetaEntity)
+
     return mangaMetaEntity.id
   }
 
