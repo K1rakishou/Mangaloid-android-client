@@ -6,11 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
 import androidx.viewpager.widget.PagerAdapter
 import androidx.viewpager.widget.ViewPager
 import com.github.mangaloid.client.R
@@ -21,6 +21,8 @@ import com.github.mangaloid.client.model.data.ViewableMangaChapter
 import com.github.mangaloid.client.model.data.ViewablePage
 import com.github.mangaloid.client.ui.widget.AsyncDataView
 import com.github.mangaloid.client.util.AndroidUtils
+import com.github.mangaloid.client.util.CachedInsets
+import com.github.mangaloid.client.util.setVisibilityFast
 
 class ReaderScreenPagerWithImages @JvmOverloads constructor(
   context: Context,
@@ -30,14 +32,15 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   private var readerActivityCallbacks: ReaderActivityCallbacks? = null
   private lateinit var readerScreenViewModel: ReaderScreenViewModel
 
-  private val asyncDataView = AsyncDataView(context)
-
   private lateinit var viewPager: ViewPager
-  private lateinit var pageIndicator: TextView
+  private lateinit var readerToolbarTitle: TextView
+  private lateinit var readerToolbarSubtitle: TextView
   private lateinit var rootContainer: ConstraintLayout
   private lateinit var closeReaderButton: FrameLayout
-  private lateinit var readerButtonContainer: CardView
+  private lateinit var readerToolbarContainer: ConstraintLayout
 
+  private val cachedInsets = CachedInsets()
+  private val asyncDataView = AsyncDataView(context)
   private val appSettings = DependenciesGraph.appSettings
   private var mangaChapterMeta: MangaChapterMeta? = null
 
@@ -48,6 +51,20 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   fun init(readerActivityCallbacks: ReaderActivityCallbacks, readerScreenViewModel: ReaderScreenViewModel) {
     this.readerActivityCallbacks = readerActivityCallbacks
     this.readerScreenViewModel = readerScreenViewModel
+  }
+
+  fun updateToolbarVisibility(isSystemUIHidden: Boolean) {
+    if (!::readerToolbarContainer.isInitialized) {
+      return
+    }
+
+    val visibility = if (isSystemUIHidden) {
+      View.GONE
+    } else {
+      View.VISIBLE
+    }
+
+    readerToolbarContainer.setVisibilityFast(visibility)
   }
 
   suspend fun onMangaLoadProgress() {
@@ -67,7 +84,7 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
     asyncDataView.onTap(null)
     asyncDataView.onErrorButtonClicked(null)
 
-    onMangaChapterPagesLoaded(readerScreenViewModel)
+    onMangaChapterPagesLoaded(readerScreenViewModel, viewableMangaChapter)
 
     this.mangaChapterMeta = readerScreenViewModel.getOrCreateMangaChapterMeta(
       viewableMangaChapter.mangaChapterDescriptor
@@ -85,19 +102,22 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
     viewPager.currentItem = viewableMangaChapter.pagesCount() - pageIndex - 1
   }
 
-  private fun onMangaChapterPagesLoaded(readerScreenViewModel: ReaderScreenViewModel) {
+  private fun onMangaChapterPagesLoaded(
+    readerScreenViewModel: ReaderScreenViewModel,
+    viewableMangaChapter: ViewableMangaChapter
+  ) {
     viewPager = findViewById(R.id.view_pager)
-    pageIndicator = findViewById(R.id.page_indicator)
+    readerToolbarTitle = findViewById(R.id.reader_toolbar_title)
+    readerToolbarSubtitle = findViewById(R.id.reader_toolbar_subtitle)
     rootContainer = findViewById(R.id.root_container)
     closeReaderButton = findViewById(R.id.close_reader_button)
-    readerButtonContainer = findViewById(R.id.reader_buttons_container)
+    readerToolbarContainer = findViewById(R.id.reader_toolbar_container)
 
     viewPager.offscreenPageLimit = OFFSCREEN_PAGES_COUNT
+    readerToolbarTitle.text = viewableMangaChapter.mangaTitle
 
     viewPager.addOnPageChangeListener(object : ViewPager.SimpleOnPageChangeListener() {
       override fun onPageSelected(position: Int) {
-        val viewableMangaChapter = (viewPager.adapter as? ViewPagerAdapter)?.viewableMangaChapter
-          ?: return
         val mangaChapterDescriptor = mangaChapterMeta?.mangaChapterDescriptor
           ?: return
 
@@ -119,13 +139,29 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
 
     closeReaderButton.setOnClickListener { readerActivityCallbacks?.closeReader() }
 
-    ViewCompat.setOnApplyWindowInsetsListener(readerButtonContainer) { v, insets ->
-      v.updateLayoutParams<MarginLayoutParams> {
-        topMargin = insets.systemWindowInsets.top
-        rightMargin = insets.systemWindowInsets.right + CLOSE_BUTTON_RIGHT_PADDING
-      }
+    ViewCompat.setOnApplyWindowInsetsListener(readerToolbarContainer) { v, insets ->
+      cachedInsets.updateFromInsets(insets.systemWindowInsets)
+      updateToolbarPaddingsByInsets()
       return@setOnApplyWindowInsetsListener insets
     }
+
+    updateToolbarPaddingsByInsets()
+  }
+
+  private fun updateToolbarPaddingsByInsets() {
+    if (!::readerToolbarContainer.isInitialized) {
+      return
+    }
+
+    readerToolbarContainer.updateLayoutParams<ViewGroup.LayoutParams> {
+      height = context.resources.getDimension(R.dimen.reader_toolbar_height).toInt() + cachedInsets.top
+    }
+
+    readerToolbarContainer.updatePadding(
+      left = cachedInsets.left,
+      right = cachedInsets.right,
+      top =  cachedInsets.top
+    )
   }
 
   private fun getViewInternal(
@@ -175,8 +211,9 @@ class ReaderScreenPagerWithImages @JvmOverloads constructor(
   private fun updatePageIndicator(pageIndex: Int, viewableMangaChapter: ViewableMangaChapter) {
     val actualPageIndex = viewableMangaChapter.coercePositionInActualPagesRange(pageIndex)
 
-    pageIndicator.text = context.getString(
-      R.string.page_indicator_template,
+    readerToolbarSubtitle.text = context.getString(
+      R.string.reader_toolbar_subtitle_template,
+      viewableMangaChapter.chapterTitle,
       actualPageIndex,
       viewableMangaChapter.pagesCountForPageCounterUi()
     )

@@ -10,6 +10,7 @@ import com.github.mangaloid.client.core.MangaloidCoroutineScope
 import com.github.mangaloid.client.core.data_structure.AsyncData
 import com.github.mangaloid.client.model.data.MangaChapterDescriptor
 import com.github.mangaloid.client.util.FullScreenUtils.hideSystemUI
+import com.github.mangaloid.client.util.FullScreenUtils.isSystemUIHidden
 import com.github.mangaloid.client.util.FullScreenUtils.setupFullscreen
 import com.github.mangaloid.client.util.FullScreenUtils.toggleSystemUI
 import com.github.mangaloid.client.util.Logger
@@ -19,6 +20,8 @@ import kotlinx.coroutines.launch
 
 class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderActivityCallbacks {
   private val coroutineScope = MangaloidCoroutineScope()
+
+  private lateinit var readerViewPager: ReaderScreenPagerWithImages
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -34,7 +37,7 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
     window.hideSystemUI()
     setContentView(R.layout.reader_activity_layout)
 
-    val readerViewPager = findViewById<ReaderScreenPagerWithImages>(R.id.reader_view_pager)
+    readerViewPager = findViewById(R.id.reader_view_pager)
 
     val readerScreenViewModel by viewModels<ReaderScreenViewModel>(
       factoryProducer = {
@@ -61,7 +64,8 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
             }
           }
           is AsyncData.Data -> {
-            readerViewPager.onMangaLoaded(currentMangaChapterAsync.data,)
+            readerViewPager.onMangaLoaded(currentMangaChapterAsync.data)
+            readerViewPager.updateToolbarVisibility(window.isSystemUIHidden())
           }
         }
       }
@@ -76,6 +80,7 @@ class ReaderActivity : ComponentActivity(), ReaderScreenPagerWithImages.ReaderAc
 
   override fun toggleFullScreenMode() {
     window.toggleSystemUI()
+    readerViewPager.updateToolbarVisibility(window.isSystemUIHidden())
   }
 
   override fun closeReader() {

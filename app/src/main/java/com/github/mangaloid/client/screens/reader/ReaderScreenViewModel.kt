@@ -59,10 +59,22 @@ class ReaderScreenViewModel(
       }
       .ignore()
 
+    val mangaResult = mangaRepository.getManga(mangaChapterDescriptor.mangaDescriptor)
+    if (mangaResult is ModularResult.Error) {
+      Logger.e(TAG, "getMangaChapterInternal($mangaChapterDescriptor) " +
+        "getManga(${mangaChapterDescriptor.mangaDescriptor}) error", mangaResult.error)
+
+      updateState {
+        copy(currentMangaChapterAsync = AsyncData.Error(mangaResult.error))
+      }
+
+      return
+    }
+
     val mangaChapterResult = mangaRepository.getMangaChapter(mangaChapterDescriptor)
     if (mangaChapterResult is ModularResult.Error) {
       Logger.e(TAG, "getMangaChapterInternal($mangaChapterDescriptor) " +
-        "getMangaChapter error", mangaChapterResult.error)
+        "getMangaChapter($mangaChapterDescriptor) error", mangaChapterResult.error)
 
       updateState {
         copy(currentMangaChapterAsync = AsyncData.Error(mangaChapterResult.error))
@@ -72,6 +84,19 @@ class ReaderScreenViewModel(
     }
 
     val mangaChapter = (mangaChapterResult as ModularResult.Value).value
+    val manga = (mangaResult as ModularResult.Value).value
+
+    if (manga == null) {
+      Logger.e(TAG, "getMangaChapterInternal($mangaChapterDescriptor) " +
+        "getManga(${mangaChapterDescriptor.mangaDescriptor}) -> null")
+
+      updateState {
+        val error = MangaRepository.MangaNotFound(mangaChapterDescriptor.mangaDescriptor)
+        copy(currentMangaChapterAsync = AsyncData.Error(error))
+      }
+
+      return
+    }
 
     val updatedMangaChapterResult = mangaRepository.refreshMangaChapterPagesIfNeeded(
       extensionId = mangaChapterDescriptor.extensionId,
@@ -102,6 +127,8 @@ class ReaderScreenViewModel(
       val viewableMangaChapter = ViewableMangaChapter.fromMangaChapter(
         chapterPages = chapterPages,
         currentChapter = updatedMangaChapter,
+        mangaTitle = manga.titles.first(),
+        mangaChapterTitle = mangaChapter.title
       )
 
       Logger.d(TAG, "getMangaChapterInternal($mangaChapterDescriptor) success. " +

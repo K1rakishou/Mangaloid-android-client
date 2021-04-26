@@ -3,7 +3,9 @@ package com.github.mangaloid.client.model.data
 
 data class ViewableMangaChapter(
   val mangaChapterDescriptor: MangaChapterDescriptor,
-  val chapterPages: List<ViewablePage>
+  val chapterPages: List<ViewablePage>,
+  val mangaTitle: String,
+  val chapterTitle: String
 ) {
   fun pagesCount() = chapterPages.size
   fun pagesCountForPageCounterUi() = chapterPages.count { viewablePage -> viewablePage is ViewablePage.MangaPage }
@@ -28,11 +30,15 @@ data class ViewableMangaChapter(
 
     fun fromMangaChapter(
       currentChapter: MangaChapter,
-      chapterPages: List<ViewablePage>
+      chapterPages: List<ViewablePage>,
+      mangaTitle: String,
+      mangaChapterTitle: String
     ): ViewableMangaChapter {
       return ViewableMangaChapter(
         mangaChapterDescriptor = currentChapter.mangaChapterDescriptor,
-        chapterPages = chapterPages
+        chapterPages = chapterPages,
+        mangaTitle = mangaTitle,
+        chapterTitle = mangaChapterTitle
       )
     }
   }

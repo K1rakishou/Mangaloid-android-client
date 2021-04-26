@@ -208,8 +208,7 @@ class MangaPageLoader(
         return false
       }
 
-      canceled.compareAndSet(false, true)
-      return true
+      return canceled.compareAndSet(false, true)
     }
 
   }
